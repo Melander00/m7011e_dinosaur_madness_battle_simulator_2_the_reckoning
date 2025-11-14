@@ -1,1 +1,22 @@
 domain: ltu-m7011e-1.se
+
+
+# Format of auto-creating hosts and services
+# - host: <string>
+#   serviceName: <string>
+#   appName: <string>
+#   servicePort: <number>
+#   targetPort: <number>
+#   skipService?: <true> | will not create a default service.
+
+hosts:
+  - host: ltu-m7011e-1.se
+    serviceName: frontend
+    appName: frontend
+    servicePort: 80
+    targetPort: 80
+  - host: ping.ltu-m7011e-1.se
+    serviceName: ping
+    appName: ping
+    servicePort: 3000
+    targetPort: 3000
