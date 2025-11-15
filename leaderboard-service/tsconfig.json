@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+
+    "rootDir": "src",
+    "outDir": "dist",
+
+    "strict": true,
+    // "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
+
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    // Custom import aliases
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"],
+      "@prisma": ["prisma/prisma.ts"],
+    }
+  },
+  "include": [
+    "src",
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "coverage",
+    "prisma"
+  ]
+}

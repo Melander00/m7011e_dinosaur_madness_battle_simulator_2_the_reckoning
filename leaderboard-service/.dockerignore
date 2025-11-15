@@ -1,0 +1,7 @@
+node_modules
+.gitignore
+.dockerignore
+Dockerfile
+eslint.config.mts
+README.md
+.env
