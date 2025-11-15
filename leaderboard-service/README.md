@@ -3,6 +3,8 @@ Create `.env` file with:
 
 ## Environmental Variables
 ```env
+PORT=3005
+
 PG_DATABASE="leaderboard"
 PG_USER="postgres"
 PG_PASSWORD=""

@@ -9,7 +9,7 @@ RUN npm ci && npm cache clean --force
 
 COPY . .
 
-RUN npm run build && npm prune --production
+RUN npm run prisma:gen && npm run build && npm prune --production
 
 # --- Run Stage ---
 FROM node:22-alpine AS app

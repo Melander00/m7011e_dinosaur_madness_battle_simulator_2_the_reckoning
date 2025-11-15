@@ -1,25 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "target": "ES2018",
+    "module": "CommonJS",
 
     "rootDir": "src",
     "outDir": "dist",
 
     "strict": true,
-    // "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo",
-
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
 
-    // Custom import aliases
-    "baseUrl": "src",
-    "paths": {
-      "@/*": ["*"],
-      "@prisma": ["prisma/prisma.ts"],
-    }
   },
   "include": [
     "src",
@@ -29,6 +20,5 @@
     "dist",
     "tests",
     "coverage",
-    "prisma"
   ]
 }

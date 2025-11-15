@@ -1,6 +1,6 @@
-import "dotenv/config";
+// import "dotenv/config";
 import path from "node:path";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 export default defineConfig({
     schema: path.join("prisma"),
@@ -14,8 +14,8 @@ export default defineConfig({
     typedSql: {
         path: path.join("prisma", "queries"),
     },
-    engine: "classic",
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+    // engine: "classic",
+    // datasource: {
+    //     url: env("DATABASE_URL"),
+    // },
 });

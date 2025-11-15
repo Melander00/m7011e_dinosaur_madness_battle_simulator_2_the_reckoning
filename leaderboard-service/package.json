@@ -9,7 +9,8 @@
     "build": "npx tsc -p tsconfig.prod.json",
     "lint": "npx eslint .",
     "prisma:gen": "npx prisma generate",
-    "prisma:push": "npx prisma db push"
+    "prisma:push": "npx prisma db push",
+    "db:deploy": "npx prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +32,5 @@
     "prisma": "^6.19.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4"
-  },
-  "type": "module"
+  }
 }

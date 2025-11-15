@@ -3,6 +3,9 @@
   "compilerOptions": {
     "sourceMap": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    
+    "preserveConstEnums": true,
+    "noImplicitAny": true,
   }
 }
