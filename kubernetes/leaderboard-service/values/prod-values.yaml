@@ -16,3 +16,9 @@ environment: Production
 image:
   repository: ghcr.io/melander00/m7011e_leaderboard
   tag: 0f0cb39
+
+
+# Ingress configuration
+ingress:
+  # Use staging for testing to avoid rate limits
+  certIssuer: letsencrypt-staging

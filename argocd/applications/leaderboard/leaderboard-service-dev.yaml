@@ -8,7 +8,7 @@ spec:
 
   # Source defines where ArgoCD pulls the application from
   source:
-    repoURL: 'https://github.com/your-org/your-repo.git'
+    repoURL: 'https://github.com/Melander00/m7011e_dinosaur_madness_battle_simulator_2_the_reckoning.git'
     targetRevision: main          # Git branch or tag
     path: kubernetes/leaderboard-service
     helm:
