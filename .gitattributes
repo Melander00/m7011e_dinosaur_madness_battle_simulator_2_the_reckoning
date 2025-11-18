@@ -1,1 +1,4 @@
-* text auto eol=lf
+* text=auto
+
+# Entrypoint files need to be in LF for docker to work correctly
+*.sh text eol=lf
