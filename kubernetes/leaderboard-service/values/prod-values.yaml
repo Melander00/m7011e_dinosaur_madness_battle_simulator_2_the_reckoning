@@ -14,7 +14,7 @@ environment: Production
 
 # Container image
 image:
-  repository: ghcr.io/melander00/m7011e_leaderboard
+  repository: ghcr.io/melander00/m7011e_leaderboard-service
   tag: 0f0cb39
 
 

@@ -46,7 +46,7 @@ jobs:
       - name: Build & Push Docker image
         run: |
           IMAGE_TAG=$(git rev-parse --short HEAD)
-          IMAGE_NAME=ghcr.io/$OWNER_LC/leaderboard-service:${IMAGE_TAG}
+          IMAGE_NAME=ghcr.io/$OWNER_LC/m7011e_leaderboard-service:${IMAGE_TAG}
 
           echo "Building image: $IMAGE_NAME"
           docker build -t $IMAGE_NAME ./leaderboard-service
