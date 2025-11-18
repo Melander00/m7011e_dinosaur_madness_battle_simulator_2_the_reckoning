@@ -26,3 +26,7 @@ app.get("/elo/:userId", async (req, res) => {
 
     res.json(user)
 })
+
+app.get("/", (req, res) => {
+    res.json({hello: "world"})
+})
