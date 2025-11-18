@@ -57,13 +57,13 @@ jobs:
       # 5. Update Helm values for dev
       - name: Update dev environment values
         run: |
-          sed -i "s/tag:.*/tag: \"${IMAGE_TAG}\"/" kubernetes/dev/values-leaderboard.yaml
+          sed -i "s/tag:.*/tag: \"${IMAGE_TAG}\"/" kubernetes/leaderboard-service/values/dev-values.yaml
 
       # 6. Commit and push the updated values file
       - name: Commit changes
         run: |
           git config user.email "ci@github.com"
           git config user.name "GitHub Actions"
-          git add kubernetes/dev/values-leaderboard.yaml
+          git add kubernetes/leaderboard-service/values/dev-values.yaml
           git commit -m "Update leaderboard-service image to ${IMAGE_TAG}"
           git push
