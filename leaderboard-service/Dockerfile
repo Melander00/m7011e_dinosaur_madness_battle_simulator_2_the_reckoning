@@ -9,9 +9,6 @@ RUN npm ci && npm cache clean --force
 
 COPY . .
 
-# TODO: remove, workaround from cloudflare outage
-ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
-
 RUN npm run prisma:gen && npm run build && npm prune --production
 
 # --- Run Stage ---
