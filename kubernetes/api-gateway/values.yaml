@@ -1,0 +1,16 @@
+hosts:
+  - host: ltu-m7011e-1.se
+    serviceName: frontend
+    appName: frontend
+    servicePort: 80
+    targetPort: 80
+  - host: ping.ltu-m7011e-1.se
+    serviceName: ping
+    appName: ping
+    servicePort: 3000
+    targetPort: 3000
+  - host: leaderboard.ltu-m7011e-1.se
+    serviceName: leaderboard-service
+    appName: leaderboard
+    servicePort: 3005
+    targetPort: 3005

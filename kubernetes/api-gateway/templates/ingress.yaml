@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    # Change to letsencrypt-prod for a real TLS cert
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+      {{- range .Values.hosts}}
+      - {{ .host }}
+      {{- end}}
+      secretName: multi-cert-tls
+  rules:
+    {{- range .Values.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .serviceName }}
+                port:
+                  number: {{ .servicePort }}
+    {{- end }}
