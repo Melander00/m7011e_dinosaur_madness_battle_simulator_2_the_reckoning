@@ -23,7 +23,8 @@ COPY --from=builder --chown=user:nodejs /app/package.json /app/package.json
 COPY --from=builder --chown=user:nodejs /app/dist /app/dist
 COPY --from=builder --chown=user:nodejs /app/node_modules /app/node_modules
 COPY --from=builder --chown=user:nodejs /app/prisma /app/prisma
-COPY entrypoint.sh /app
+COPY --from=builder --chown=user:nodejs /app/entrypoint.sh /app/entrypoint.sh
+COPY --from=builder --chown=user:nodejs /app/src/generated/prisma/lib* /app/dist/generated/prisma/
 
 RUN chmod +x /app/entrypoint.sh
 

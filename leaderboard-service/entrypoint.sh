@@ -1,6 +1,9 @@
 #!/bin/sh
 
-FLAG="/home/hasbuilt.flag"
+export DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/${PG_DATABASE}?schema=public"
+
+
+FLAG="/app/hasbuilt.flag"
 
 RESET="\033[0m"
 RED_BOLD="\033[31;49;1m"
