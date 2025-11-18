@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: leaderboard-service-dev
+  name: postgres-dev
   namespace: argocd
 spec:
   project: default
@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: 'https://github.com/Melander00/m7011e_dinosaur_madness_battle_simulator_2_the_reckoning.git'
     targetRevision: main          # Git branch or tag
-    path: kubernetes/leaderboard-service
+    path: kubernetes/postgres
     helm:
       valueFiles:
         - values/dev-values.yaml       # Environment-specific overrides
