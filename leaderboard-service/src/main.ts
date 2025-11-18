@@ -28,5 +28,5 @@ app.get("/elo/:userId", async (req, res) => {
 })
 
 app.get("/", (req, res) => {
-    res.json({git: "hub"})
+    res.json({git: "hub2"})
 })
