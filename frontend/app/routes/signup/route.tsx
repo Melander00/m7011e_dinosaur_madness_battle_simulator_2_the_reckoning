@@ -60,6 +60,7 @@ export default function SignupPage() {
 
     return(
         <>
+            <title>Signup</title>
             <main className={styles.main}>
                 <div>{/* TODO: logo */}</div>
 

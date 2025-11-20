@@ -62,6 +62,7 @@ export default function LoginPage() {
 
     return (
         <>
+            <title>Login</title>
             <main className={styles.main}>
                 <div>{/* TODO: logo */}</div>
 
