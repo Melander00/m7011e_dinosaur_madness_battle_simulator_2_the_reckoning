@@ -1,0 +1,4 @@
+model RankedUser {
+    userId       String @id
+    rankedPoints Int
+}

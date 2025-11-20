@@ -1,0 +1,5 @@
+apiVersion: v2
+name: leaderboard-service
+description: A leaderboard that keeps track of user's ranked points.
+version: 1.0.0
+appVersion: "1.0"
