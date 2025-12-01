@@ -1,0 +1,30 @@
+keycloak:
+  replicas: 1
+  image: quay.io/keycloak/keycloak:23.0
+
+  # Admin credentials (CHANGE THESE!)
+  adminUser: admin
+  adminPassword: DinoAdmin2024!
+
+  # Database configuration
+  database:
+    vendor: postgres
+    host: postgres-service.keycloak-db.svc.cluster.local
+    port: 5432
+    database: keycloak
+    username: keycloak
+    password: keycloak-secure-password-123  # Must match PostgreSQL password
+
+  # Resource limits (optional)
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+# Ingress configuration
+domain: keycloak.ltu-m7011e-1.se  # Change to your domain
+email: irmpal-1@student.ltu.se    # Change to your email
+certIssuer: letsencrypt-prod      # Use letsencrypt-prod for production
