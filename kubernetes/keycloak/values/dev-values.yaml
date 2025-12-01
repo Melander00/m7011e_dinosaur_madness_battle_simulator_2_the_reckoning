@@ -1,0 +1,31 @@
+# Development Environment Configuration for Keycloak
+
+# PostgreSQL Database Configuration
+postgres:
+  password: "DinoAdmin2024!"  # Strong password for database
+
+# Keycloak Admin Account
+keycloak:
+  adminPassword: "DinoAdmin2024!"  # Admin console password 
+  database:
+    password: "DinoAdmin2024!"  # Must match postgres.password above
+
+# Your Domain
+domain: keycloak.ltu-m7011e-1.se  # Your Keycloak domain
+email: irmpal-1@student.ltu.se   # YOUR email for Let's Encrypt notifications
+
+# Environment identifier
+environment: Development
+
+# Container images
+image:
+  keycloak:
+    repository: quay.io/keycloak/keycloak
+    tag: "23.0"
+  postgres:
+    repository: postgres
+    tag: "16-alpine"
+
+# Ingress configuration
+ingress:
+  certIssuer: letsencrypt-prod  # Using production certs (you already have them)
