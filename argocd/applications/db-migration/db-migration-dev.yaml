@@ -24,6 +24,6 @@ spec:
   syncPolicy:
     automated:
       prune: true       # Delete resources that are removed from git
-      selfHeal: true    # Revert manual changes to match git
+      selfHeal: false    # Revert manual changes to match git
     syncOptions:
       - CreateNamespace=true   # Automatically create namespace if missing
