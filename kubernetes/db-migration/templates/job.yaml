@@ -5,6 +5,7 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    migration-image: "{{ .Values.image.tag }}"
 spec:
   template:
     spec:
