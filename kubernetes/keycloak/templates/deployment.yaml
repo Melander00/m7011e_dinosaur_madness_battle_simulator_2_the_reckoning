@@ -19,6 +19,7 @@ spec:
         image: {{ .Values.keycloak.image }}
         args:
         - start
+        - --optimized
         - --http-enabled=true
         - --http-port=8080
         - --hostname-strict=false
