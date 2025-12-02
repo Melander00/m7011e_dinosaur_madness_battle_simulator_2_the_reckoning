@@ -3,10 +3,12 @@ kind: Job
 metadata:
   name: db-migration
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
-    migration-image: "{{ .Values.image.tag }}"
+    argocd.argoproj.io/sync-wave: "0"
+    # argocd.argoproj.io/hook: PreSync
+    # argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    # migration-image: "{{ .Values.image.tag }}"
 spec:
+  backoffLimit: 1
   template:
     spec:
       restartPolicy: Never
