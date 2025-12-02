@@ -1,13 +1,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: db-migration
+  name: db-migrate-{{ .Values.image.tag }}
   annotations:
     argocd.argoproj.io/sync-wave: "0"
     # argocd.argoproj.io/hook: PreSync
     # argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
     # migration-image: "{{ .Values.image.tag }}"
 spec:
+  ttlSecondsAfterFinished: 3600
   backoffLimit: 1
   template:
     spec:
