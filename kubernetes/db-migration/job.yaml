@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          env:
+            - name: FLYWAY_URL
+              value: "jdbc:postgresql://postgres:5432/postgres"
+            - name: FLYWAY_USER
+              value: admin
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
