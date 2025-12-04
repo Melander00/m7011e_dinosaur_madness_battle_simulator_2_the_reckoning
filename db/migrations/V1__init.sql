@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     userId INTEGER PRIMARY KEY,
     quote TEXT,
     profilePicture BYTEA,
-    profileBanner BYTEA,
+    profileBanner BYTEA
 );
 
 -- Rank --
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS relationshipBlocked (
     CONSTRAINT fk_block_to FOREIGN KEY (toUserId)
         REFERENCES users(userId)
         ON DELETE CASCADE
-)
+);
 
 -- Relationship Requests --
 CREATE TABLE IF NOT EXISTS relationshipRequests (
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS relationshipRequests (
         REFERENCES users(userId)
         ON DELETE CASCADE,
     CONSTRAINT chk_req_not_same CHECK (fromUserId <> toUserId)
-)
+);
 
 -- Game History --
 CREATE TABLE IF NOT EXISTS games (
@@ -89,4 +89,4 @@ CREATE TABLE IF NOT EXISTS gamePlayers (
     CONSTRAINT fk_gp_user FOREIGN KEY (userId)
         REFERENCES users(userId)
         ON DELETE CASCADE
-)
+);
