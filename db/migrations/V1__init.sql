@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- User --
 CREATE TABLE IF NOT EXISTS users (
-    userId INTEGER PRIMARY KEY,
+    userId UUID PRIMARY KEY,
     quote TEXT,
     profilePicture BYTEA,
     profileBanner BYTEA
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Rank --
 CREATE TABLE IF NOT EXISTS ranks (
-    userId INTEGER PRIMARY KEY,
+    userId UUID PRIMARY KEY,
     rankedPoints INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT fk_rank_user FOREIGN KEY (userId)
@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS ranks (
 
 -- Relationship --
 CREATE TABLE IF NOT EXISTS relationships (
-    userId1 INTEGER NOT NULL,
-    userId2 INTEGER NOT NULL,
+    userId1 UUID NOT NULL,
+    userId2 UUID NOT NULL,
     
     PRIMARY KEY (userId1, userId2),
     CONSTRAINT fk_rel_user1 FOREIGN KEY (userId1)
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS relationships (
 
 -- Blocking --
 CREATE TABLE IF NOT EXISTS relationshipBlocked (
-    fromUserId INTEGER NOT NULL,
-    toUserId INTEGER NOT NULL,
+    fromUserId UUID NOT NULL,
+    toUserId UUID NOT NULL,
     
     PRIMARY KEY (fromUserId, toUserId),
     CONSTRAINT fk_block_from FOREIGN KEY (fromUserId)
@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS relationshipBlocked (
 
 -- Relationship Requests --
 CREATE TABLE IF NOT EXISTS relationshipRequests (
-    fromUserId INTEGER NOT NULL,
-    toUserId   INTEGER NOT NULL,
+    fromUserId UUID NOT NULL,
+    toUserId   UUID NOT NULL,
     status     INTEGER NOT NULL,
     PRIMARY KEY (fromUserId, toUserId),
     CONSTRAINT fk_req_from FOREIGN KEY (fromUserId)
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS relationshipRequests (
 -- Game History --
 CREATE TABLE IF NOT EXISTS games (
     gameId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    winnerUserId INTEGER,
+    winnerUserId UUID,
     timeStarted TIMESTAMP NOT NULL,
     timeFinished TIMESTAMP NOT NULL,
     CONSTRAINT fk_game_winner FOREIGN KEY (winnerUserId)
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS games (
 
 CREATE TABLE IF NOT EXISTS gamePlayers (
     gameId UUID NOT NULL,
-    userId INTEGER NOT NULL,
+    userId UUID NOT NULL,
     -- Game specific stats --
     -- hits
     -- powerups
