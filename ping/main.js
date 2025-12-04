@@ -1,7 +1,7 @@
 const express = require("express")
 const prom = require("prom-client")
 const app = express()
-const PORT = parseInt(process.env["PORT"] || "3000")
+const PORT = parseInt(process.env["PORT"] || "3100")
 
 const { Counter, Histogram, register } = prom
 
@@ -24,10 +24,6 @@ app.listen(PORT, () => {
 })
 
 
-
-
-
-
 app.get("/metrics", async (req, res) => {
     res.set("Content-Type", register.contentType)
     res.end(await register.metrics())
@@ -44,7 +40,11 @@ app.get("/ping", (req, res) => {
         service: SERVICE_NAME
     })
 
-    requestDuration.observe({}, (Date.now() - start) / 1000)
+    requestDuration.observe({
+        method: "GET",
+        endpoint: "/ping",
+        service: SERVICE_NAME
+    }, (Date.now() - start) / 1000)
 
     res.send("pong")
 })

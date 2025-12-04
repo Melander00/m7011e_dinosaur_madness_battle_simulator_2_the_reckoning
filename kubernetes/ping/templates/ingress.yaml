@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ping
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: ping.ltu-m7011e-1.se
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ping
+            port:
+              number: 3100
+  tls:
+  - hosts:
+    - ping.ltu-m7011e-1.se
+    secretName: ping-tls
