@@ -20,5 +20,5 @@ spec:
         ports:
         - containerPort: 3100
         env:
-          - name: POST
+          - name: PORT
             value: "3100"

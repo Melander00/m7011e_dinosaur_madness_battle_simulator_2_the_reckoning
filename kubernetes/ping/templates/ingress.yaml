@@ -4,13 +4,14 @@ metadata:
   name: ping
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-staging
+    # traefik.ingress.kubernetes.io/router.priority: "100"
 spec:
   ingressClassName: traefik
   rules:
-  - host: ping.ltu-m7011e-1.se
+  - host: ltu-m7011e-1.se
     http:
       paths:
-      - path: /
+      - path: /api/ping
         pathType: Prefix
         backend:
           service:
@@ -19,5 +20,5 @@ spec:
               number: 3100
   tls:
   - hosts:
-    - ping.ltu-m7011e-1.se
+    - ltu-m7011e-1.se
     secretName: ping-tls
