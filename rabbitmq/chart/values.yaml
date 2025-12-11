@@ -1,5 +1,5 @@
 # RabbitMQ Configuration
-Image: "rabbitmq:3-management"
+Image: "rabbitmq:4.2-management"
 
 # RabbitMQ Credentials
 # ⚠️ IMPORTANT: Change these for production!
