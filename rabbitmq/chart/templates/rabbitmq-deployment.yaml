@@ -21,6 +21,7 @@ spec:
              ports:
                - containerPort: 15672
                - containerPort: 5672
+               - containerPort: 15692
              envFrom:
                - configMapRef:
                    name: rabbitmq-config
