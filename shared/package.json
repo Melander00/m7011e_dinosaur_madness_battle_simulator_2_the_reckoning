@@ -1,0 +1,9 @@
+{
+  "name": "shared",
+  "version": "1.0.0",
+  "description": "Shared modules for Dinosaur Madness microservices",
+  "main": "index.js",
+  "dependencies": {
+    "pg": "^8.12.0"
+  }
+}

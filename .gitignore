@@ -1,0 +1,5 @@
+# Ignore all node_modules directories anywhere in the repo
+node_modules/
+
+# Ignore only the plain .env file (not .env.local, .env.production, etc.)
+.env
