@@ -76,7 +76,9 @@
     const params = new URLSearchParams(location.search)
 
     // Socket.IO connection
-    const socket = io("http://localhost:3000", {
+    const url = "http://23489603-ce4b-4e65-8438-3fbcb6a5aacd.game.ltu-m7011e-1.se/"
+
+    const socket = io(url, {
         auth: {
             token: params.get("t")
         }
