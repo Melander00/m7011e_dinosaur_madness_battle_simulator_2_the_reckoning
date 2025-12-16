@@ -57,6 +57,7 @@ declare global {
     namespace Express {
         interface Request {
             user?: jwt.JwtPayload;
+            userId?: string; // Convenience accessor for req.user.sub
         }
     }
 }
@@ -108,6 +109,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
             // Add user info to request object
             req.user = decoded as jwt.JwtPayload;
+            req.userId = req.user.sub; // Convenience accessor for Keycloak user ID
             next();
         }
     );
