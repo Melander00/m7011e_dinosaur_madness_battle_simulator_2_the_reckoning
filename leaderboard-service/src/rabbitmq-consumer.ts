@@ -5,6 +5,7 @@
 
 import { Connection } from "rabbitmq-client";
 import { calculateELO, STARTING_ELO } from "./elo";
+import { query } from "./db";
 
 const RABBITMQ_HOST = process.env.RABBITMQ_URL || "amqp://admin:admin123@localhost:5672";
 const LEADERBOARD_MATCH_RESULTS_QUEUE = "leaderboard-match-results";
@@ -24,7 +25,7 @@ export async function startLeaderboardMatchResultConsumer() {
     try {
         const rabbit = new Connection(RABBITMQ_HOST);
 
-        rabbit.on("error", (err) => {
+        rabbit.on("error", (err: any) => {
             console.error(`RabbitMQ Error: ${err}`);
         });
 
@@ -53,7 +54,7 @@ export async function startLeaderboardMatchResultConsumer() {
                     routingKey: 'match.result.*' // Listen for all match.result.* events
                 }
             ],
-        }, async (msg) => {
+        }, async (msg: any) => {
             try {
                 const body = msg.body as MatchResultMessage;
                 console.log(`[Leaderboard Service] Processing match result: Winner=${body.winnerId}, Loser=${body.loserId}`);
@@ -68,7 +69,7 @@ export async function startLeaderboardMatchResultConsumer() {
             }
         });
 
-        consumer.on("error", (err) => {
+        consumer.on("error", (err: any) => {
             console.error(`Consumer Error: ${err}`);
         });
 
@@ -106,12 +107,35 @@ async function processLeaderboardMatchResult(message: MatchResultMessage): Promi
         throw new Error('Invalid match result: Winner and loser cannot be the same player');
     }
 
-    // TODO: Replace with your database implementation
-    // For now, just log the match result
-    console.log(`[Leaderboard Service] Match result received: ${winnerId} defeated ${loserId}`);
-    console.log(`[Leaderboard Service] Database integration pending - ELO calculation not persisted`);
+    // Get current ratings from DB or use starting ELO for new players
+    const { rows } = await query(
+        'SELECT userid, rankedpoints FROM ranks WHERE userid = ANY($1::uuid[])',
+        [[winnerId, loserId]]
+    );
     
-    // Calculate ELO for demonstration (not persisted)
-    const { newWinnerRating, newLoserRating } = calculateELO(STARTING_ELO, STARTING_ELO);
-    console.log(`[Leaderboard Service] Calculated ELO: Winner would get ${newWinnerRating}, Loser would get ${newLoserRating}`);
+    const ratingsMap = new Map<string, number>(rows.map((r: any) => [r.userid, r.rankedpoints]));
+    const winnerCurrentRating = ratingsMap.get(winnerId) ?? STARTING_ELO;
+    const loserCurrentRating = ratingsMap.get(loserId) ?? STARTING_ELO;
+    
+    // Calculate new ELO ratings
+    const { newWinnerRating, newLoserRating } = calculateELO(winnerCurrentRating, loserCurrentRating);
+    
+    // Upsert winner rating
+    await query(
+        `INSERT INTO ranks (userid, rankedpoints) 
+         VALUES ($1, $2)
+         ON CONFLICT (userid) DO UPDATE SET rankedpoints = $2`,
+        [winnerId, newWinnerRating]
+    );
+    
+    // Upsert loser rating
+    await query(
+        `INSERT INTO ranks (userid, rankedpoints) 
+         VALUES ($1, $2)
+         ON CONFLICT (userid) DO UPDATE SET rankedpoints = $2`,
+        [loserId, newLoserRating]
+    );
+    
+    console.log(`[Leaderboard Service] Match result received: ${winnerId} defeated ${loserId}`);
+    console.log(`[Leaderboard Service] Updated ELO: Winner ${winnerCurrentRating} → ${newWinnerRating}, Loser ${loserCurrentRating} → ${newLoserRating}`);
 }
