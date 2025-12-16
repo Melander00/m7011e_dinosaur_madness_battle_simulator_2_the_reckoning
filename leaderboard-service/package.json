@@ -7,17 +7,13 @@
     "build:dev": "npx tsc -p tsconfig.dev.json",
     "start": "node dist/main.js",
     "build": "npx tsc -p tsconfig.prod.json",
-    "lint": "npx eslint .",
-    "prisma:gen": "npx prisma generate",
-    "prisma:push": "npx prisma db push",
-    "db:deploy": "npx prisma migrate deploy"
+    "lint": "npx eslint ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.19.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -34,7 +30,6 @@
     "eslint": "^9.39.1",
     "globals": "^16.5.0",
     "jiti": "^2.6.1",
-    "prisma": "^6.19.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4"
   }
