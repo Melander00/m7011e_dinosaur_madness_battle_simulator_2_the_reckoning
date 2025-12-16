@@ -1,0 +1,7 @@
+node_modules
+game
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+.env

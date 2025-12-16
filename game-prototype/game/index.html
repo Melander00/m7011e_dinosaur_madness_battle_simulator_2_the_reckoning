@@ -39,7 +39,7 @@
   <canvas id="canvas" width="800" height="300"></canvas>
   <div id="gameOver"></div>
 
-  <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
   <script>
     // Canvas setup
     const canvas = document.getElementById('canvas');
@@ -73,8 +73,14 @@
     let myPlayerNum = null;
     let imageLoaded = false;
     
+    const params = new URLSearchParams(location.search)
+
     // Socket.IO connection
-    const socket = io();
+    const socket = io("http://localhost:3000", {
+        auth: {
+            token: params.get("t")
+        }
+    });
     
     console.log('Connecting to Socket.IO server...');
     
@@ -105,16 +111,20 @@
         p.frame = p.frameRange.start;  // Start at first frame of range
       }
     });
+
+    let gameOver = false;
     
     // Game over
     socket.on('gameOver', (data) => {
       const winner = data.winner === 0 ? 'Green' : 'Red';
       document.getElementById('gameOver').textContent = `${winner} wins!`;
       document.getElementById('gameOver').style.display = 'block';
+      gameOver = true
     });
     
     // Keyboard input: SPACE to attack
     document.addEventListener('keydown', (e) => {
+      if(gameOver) return
       if (e.code === 'Space') {
         e.preventDefault();
         console.log('SPACE pressed - sending attack');
