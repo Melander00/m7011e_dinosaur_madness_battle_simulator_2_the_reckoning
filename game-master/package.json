@@ -1,0 +1,37 @@
+{
+  "name": "game-master",
+  "version": "1.0.0",
+  "main": "dist/main.js",
+  "scripts": {
+    "watch": "npx tsc -p tsconfig.dev.json --watch",
+    "build:dev": "npx tsc -p tsconfig.dev.json",
+    "start": "node dist/main.js",
+    "build": "npx tsc -p tsconfig.prod.json",
+    "lint": "npx eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@kubernetes/client-node": "^1.4.0",
+    "@types/pg": "^8.16.0",
+    "body-parser": "^2.2.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^3.2.0",
+    "rabbitmq-client": "^5.0.8",
+    "redis": "^5.10.0",
+    "socket.io": "4.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4"
+  }
+}
