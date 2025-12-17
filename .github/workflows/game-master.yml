@@ -54,7 +54,7 @@ jobs:
       # 5. Update Helm values for dev
       - name: Update dev environment values
         run: |
-          sed -i "s/tag:.*/tag: \"${IMAGE_TAG}\"/" kubernetes/game-master/values/dev-values.yaml
+          sed -i 's/^  tag:.*/  tag: "'${IMAGE_TAG}'"/' kubernetes/game-master/values/dev-values.yaml
 
       # 6. Commit and push the updated values file
       - name: Commit changes

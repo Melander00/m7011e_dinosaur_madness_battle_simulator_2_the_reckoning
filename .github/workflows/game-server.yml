@@ -54,13 +54,13 @@ jobs:
       # 5. Update Helm values for dev
       - name: Update dev environment values
         run: |
-          sed -i "s/tag:.*/tag: \"${IMAGE_TAG}\"/" kubernetes/game-server/values/dev-values.yaml
+          sed -i 's/^  serverTag:.*/  serverTag: "'${SERVER_TAG}'"/' kubernetes/game-master/values/dev-values.yaml
 
       # 6. Commit and push the updated values file
       - name: Commit changes
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add kubernetes/game-server/values/dev-values.yaml
+          git add kubernetes/game-master/values/dev-values.yaml
           git commit -m "Update game-server image to ${IMAGE_TAG}"
           git push
