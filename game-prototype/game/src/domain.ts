@@ -5,7 +5,7 @@ type MatchDomainResponse = {
 };
 
 export async function getMatchDomain(token: string) {
-    const body = await req<MatchDomainResponse>("http://game-master.ltu-m7011e-1.se/match", {
+    const body = await req<MatchDomainResponse>("https://game-master.ltu-m7011e-1.se/match", {
         headers: {
             "Authorization": "Bearer " + token,
         },
