@@ -1,5 +1,5 @@
 import * as k8s from "@kubernetes/client-node";
-import { GameServer, ServerOptions } from "./gameServer";
+import { GameServer, ServerOptions } from "../game/GameServer";
 
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault()

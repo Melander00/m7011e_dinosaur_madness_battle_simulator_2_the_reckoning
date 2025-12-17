@@ -1,19 +1,20 @@
 import { AbortError, CoreV1Api, KubeConfig, NetworkingV1Api, V1Pod, Watch } from "@kubernetes/client-node";
-import { createIngressManifest } from "./gameIngress";
-import { createPodManifest } from "./gamePod";
-import { createServiceManifest } from "./gameService";
+import { createIngressManifest } from "../k8s/gameIngress";
+import { createPodManifest } from "../k8s/gamePod";
+import { createServiceManifest } from "../k8s/gameService";
 
 export type ServerOptions = {
     matchId: string,
     user1: string,
     user2: string,
     namespace: string,
-    domain: string
+    domain: string,
+    ranked: boolean,
 }
 
 export class GameServer {
 
-    id: string;
+    matchId: string;
     user1: string;
     user2: string;
     namespace: string;
@@ -29,7 +30,7 @@ export class GameServer {
 
 
     constructor(options: ServerOptions, coreApi: CoreV1Api, networkApi: NetworkingV1Api) {
-        this.id = options.matchId;
+        this.matchId = options.matchId;
         this.user1 = options.user1
         this.user2 = options.user2
         this.namespace = options.namespace
@@ -40,21 +41,21 @@ export class GameServer {
 
     async init() {
         const pod = await this.coreApi.createNamespacedPod({
-            body: createPodManifest({matchId: this.id, user1: this.user1, user2: this.user2}),
+            body: createPodManifest({matchId: this.matchId, user1: this.user1, user2: this.user2}),
             namespace: this.namespace
         })
 
         this.podName = pod.metadata?.name ?? null;
         
         const service = await this.coreApi.createNamespacedService({
-            body: createServiceManifest({matchId: this.id}),
+            body: createServiceManifest({matchId: this.matchId}),
             namespace: this.namespace
         })
 
         this.serviceName = service.metadata?.name ?? null;
         
         const ingress = await this.networkApi.createNamespacedIngress({
-            body: createIngressManifest({matchId: this.id, domain: this.domain}),
+            body: createIngressManifest({matchId: this.matchId, domain: this.domain}),
             namespace: this.namespace
         })
 
