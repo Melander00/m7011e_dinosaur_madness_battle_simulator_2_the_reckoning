@@ -9,6 +9,10 @@ on:
       - '!game-prototype/game/**'
       - '!kubernetes/**'
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-update-dev:
     name: Build & Deploy Service to Dev

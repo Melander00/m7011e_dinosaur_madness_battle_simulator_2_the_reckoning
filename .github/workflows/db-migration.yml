@@ -8,6 +8,10 @@ on:
       - 'db/**'        # Only trigger when db changes
       - '!kubernetes/**'               # Don't trigger when only k8s files change
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-update-dev:
     name: Deploy DB migrations to Dev

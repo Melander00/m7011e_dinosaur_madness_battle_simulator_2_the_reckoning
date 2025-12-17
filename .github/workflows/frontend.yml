@@ -8,6 +8,10 @@ on:
       - 'frontend/**'        # Only trigger when frontend changes
       - '!kubernetes/**'               # Don't trigger when only k8s files change
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-update-dev:
     name: Build & Deploy Frontend to Dev
