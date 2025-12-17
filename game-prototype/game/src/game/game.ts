@@ -37,7 +37,7 @@ export function initGame(domain: string, token: string) {
     let myPlayerNum = null;
     let imageLoaded = false;
 
-    const socket = io(`http://${domain}/`, {
+    const socket = io(`https://${domain}/`, {
         auth: {
             token: token,
         },

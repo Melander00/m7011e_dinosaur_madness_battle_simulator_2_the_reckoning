@@ -10,11 +10,11 @@ export function createIngressManifest({ matchId, domain }: IngressManifestOption
         metadata: {
             name: `match-${matchId}-ingress`,
             annotations: {
-                "traefik.ingress.kubernetes.io/router.entrypoints": "web",
-                // "traefik.ingress.kubernetes.io/router.entrypoints": "websecure",
-                // "traefik.ingress.kubernetes.io/router.tls": "true",
+                // "traefik.ingress.kubernetes.io/router.entrypoints": "web",
+                "traefik.ingress.kubernetes.io/router.entrypoints": "websecure",
+                "traefik.ingress.kubernetes.io/router.tls": "true",
                 "traefik.ingress.kubernetes.io/router.middlewares": "game-servers-cors@kubernetescrd",
-                // "cert-manager.io/cluster-issuer": "letsencrypt-staging",
+                "cert-manager.io/cluster-issuer": "letsencrypt-staging",
             },
             labels: {
                 app: "game-server",
@@ -40,12 +40,12 @@ export function createIngressManifest({ matchId, domain }: IngressManifestOption
                     }]
                 }
             }],
-            // tls: [{
-            //     hosts: [
-            //         "*."+domain
-            //     ],
-            //     secretName: "game-server-tls"
-            // }]
+            tls: [{
+                hosts: [
+                    "*."+domain
+                ],
+                secretName: "game-server-tls"
+            }]
         },
     };
 }
