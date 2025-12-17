@@ -1,4 +1,4 @@
-name: Game Master Service CI/CD
+name: Game Server Service CI/CD
 
 on:
   push:
