@@ -45,7 +45,7 @@ game.onGameOver(({winner, loser}) => {
     console.log("Game Over!")
     publisher.send({
         exchange: "match-events",
-        routingKey: "match.result.completed"
+        routingKey: "match.result.completed" 
     }, {
         winnerId: winner.id,
         loserId: loser.id,
