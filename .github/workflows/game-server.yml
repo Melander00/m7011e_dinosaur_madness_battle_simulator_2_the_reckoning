@@ -61,6 +61,7 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
+          git pull
           git add kubernetes/game-master/values/dev-values.yaml
           git commit -m "Update game-server image to ${IMAGE_TAG}"
           git push
