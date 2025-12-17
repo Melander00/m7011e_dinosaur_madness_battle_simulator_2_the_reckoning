@@ -15,7 +15,7 @@ spec:
         app: {{ .Values.app.name }}
     spec:
       containers:
-      - name: leaderboard
+      - name: game-master
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         ports:
         - containerPort: {{ .Values.app.port }}
