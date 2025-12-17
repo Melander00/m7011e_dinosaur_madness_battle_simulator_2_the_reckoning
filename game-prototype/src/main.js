@@ -22,6 +22,7 @@ if (!MATCH_ID) {
 
 const game = require("./game")
 const { rabbitmq } = require("./rabbit")
+const { verifyJwt } = require("./keycloak")
 
 app.use(cors())
 
@@ -31,14 +32,6 @@ app.get("/health", (req, res) => {
 
 const PORT = parseInt(process.env["PORT"] || "3000")
 
-
-
-function verifyJwt(token) {
-    return {
-        sub: token
-    }
-}
-
 const publisher = rabbitmq.createPublisher({
     confirm: true,
     maxAttempts: 5,
@@ -47,18 +40,26 @@ const publisher = rabbitmq.createPublisher({
 })
 
 game.init(USER1, USER2)
-game.onGameOver(winner => {
+game.onGameOver(({winner, loser}) => {
     // TODO: Handle what happens when the game is over.
     console.log("Game Over!")
     publisher.send({
         exchange: "match-events",
-        routingKey: "match.completed"
+        routingKey: "match.result.completed"
     }, {
-        winner,
-        id: MATCH_ID
+        winnerId: winner.id,
+        loserId: loser.id,
+        matchId: MATCH_ID,  
+        timestamp: Date.now(),
+        ranked: isTruthy(process.env["RANKED"]) 
     })
 })
 
+function isTruthy(val) {
+    if(!val) return false;
+
+    return /^(1|true|t|yes|y|on)$/i.test(val);
+}
 
 const io = new Server(server, {
     cors: {
@@ -70,14 +71,14 @@ const io = new Server(server, {
     }
 })
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
     const jwt = socket.handshake.auth.token;
     if (!jwt) {
         return next(new Error("Unauthorized"))
     }
 
     try {
-        const payload = verifyJwt(jwt)
+        const payload = await verifyJwt(jwt)
         const id = payload.sub
 
         if (!(id === USER1 || id === USER2)) {

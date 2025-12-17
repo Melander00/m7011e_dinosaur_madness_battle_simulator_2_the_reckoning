@@ -54,8 +54,11 @@ function socketConnection(io, socket) {
 
         // Check for game over
         if (opponent.hp <= 0) {
-            listeners.forEach(l => l(attacker))
-            io.emit('gameOver', { winner: attacker.num });
+            listeners.forEach(l => l({
+                winner: attacker,
+                loser: opponent,
+            }))
+            io.emit('gameOver', { winner: attacker.num, loser: opponent });
         }
     });
 

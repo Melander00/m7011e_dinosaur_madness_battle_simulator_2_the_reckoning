@@ -22,7 +22,6 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
     "jwks-rsa": "^3.2.0",
-    "pg": "^8.16.3",
     "rabbitmq-client": "^5.0.8",
     "redis": "^5.10.0",
     "socket.io": "4.8.1"

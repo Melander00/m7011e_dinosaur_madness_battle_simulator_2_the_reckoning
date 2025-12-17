@@ -2,14 +2,16 @@
   "name": "socketio-fighting-game",
   "version": "1.0.0",
   "description": "Minimal two-player fighting game with Socket.IO",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
-    "start": "node main"
+    "start": "node src/main"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^3.2.0",
     "rabbitmq-client": "^5.0.8",
     "socket.io": "^4.8.1"
   }

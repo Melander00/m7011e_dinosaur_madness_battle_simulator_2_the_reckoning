@@ -3,13 +3,15 @@ import type { V1Pod } from "@kubernetes/client-node"
 type PodManifestOptions = {
     matchId: string,
     user1: string,
-    user2: string
+    user2: string,
+    ranked: boolean,
 }
 
 export function createPodManifest({
     matchId,
     user1,
-    user2
+    user2,
+    ranked
 }: PodManifestOptions): V1Pod {
     return {
         metadata: {
@@ -31,6 +33,8 @@ export function createPodManifest({
                     {name: "MATCH_ID", value: matchId},
                     {name: "USER1", value: user1},
                     {name: "USER2", value: user2},
+                    {name: "RANKED", value: ranked ? "1" : "0"},
+
                     {name: "RABBITMQ_USERNAME", value: process.env["RABBITMQ_USERNAME"]},
                     {name: "RABBITMQ_PASSWORD", value: process.env["RABBITMQ_PASSWORD"]},
                     {name: "RABBITMQ_HOST", value: "rabbitmq-service-api.rabbitmq.svc.cluster.local"},
