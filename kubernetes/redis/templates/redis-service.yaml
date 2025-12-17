@@ -3,7 +3,6 @@ kind: Service
 metadata:
   name: {{ .Values.app.name }}-service
 spec:
-  type: {{ .Values.service.type }}
   ports:
   - port: {{ .Values.service.port }}
     targetPort: 6379
