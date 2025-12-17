@@ -42,7 +42,7 @@ const publisher = rabbitmq.createPublisher({
 game.init(USER1, USER2)
 game.onGameOver(({winner, loser}) => {
     // TODO: Handle what happens when the game is over.
-    console.log("Game Over!")
+    console.log("Game Over!") 
     publisher.send({
         exchange: "match-events",
         routingKey: "match.result.completed" 
