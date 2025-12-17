@@ -3,7 +3,7 @@
 app:
   name: game-master
   replicas: 1
-  port: 3000
+  port: 8080
 
 # Development domain - change to your assigned domain
 domain: game-master.ltu-m7011e-1.se

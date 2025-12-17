@@ -18,7 +18,7 @@ spec:
       - name: leaderboard
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         ports:
-        - containerPort: 3005
+        - containerPort: {{ .Values.app.port }}
         env:
           - name: REDIS_USERNAME
             value: "{{ .Values.redis.username }}"
