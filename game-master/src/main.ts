@@ -56,7 +56,7 @@ const createMatchConsumer = rabbitmq.createConsumer({
 
 
 // TODO: Make this a CronJob on the cluster instead. 
-// When replicating this we may try to remove servers multiple times
+// When replicating this we may try to remove servers multiple times 
 async function removeExpiredMatches() {
     await handleExpiredMatches(expired => {
         removeServerById(expired.matchId, expired.namespace)
