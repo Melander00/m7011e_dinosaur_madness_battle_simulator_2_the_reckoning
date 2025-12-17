@@ -43,9 +43,9 @@ export async function getMe(userId: string): Promise<RankRow | null> {
   const { rows } = await query(
     `SELECT userid, rankedpoints, rank FROM (
        SELECT 
-         "userId" as userid,
-         "rankedPoints" as rankedpoints,
-         RANK() OVER (ORDER BY "rankedPoints" DESC, "userId" ASC) as rank
+         userid,
+         rankedpoints,
+         RANK() OVER (ORDER BY rankedpoints DESC, userid ASC) as rank
        FROM ranks
      ) t
      WHERE userid = $1
@@ -54,4 +54,37 @@ export async function getMe(userId: string): Promise<RankRow | null> {
   );
   
   return rows[0] ?? null;
+}
+
+/**
+ * Get players near a specific user's rank (e.g., 5 above and 5 below)
+ * @param userId Keycloak sub (UUID)
+ * @param range Number of players above and below to return (default: 5)
+ * @returns Array of {userid, rankedpoints, rank} including the user and nearby players
+ */
+export async function getNearby(userId: string, range: number = 5): Promise<RankRow[]> {
+  const cappedRange = Math.max(1, Math.min(range, 50)); // Cap at 50 to prevent abuse
+  
+  const { rows } = await query(
+    `WITH ranked_users AS (
+       SELECT 
+         userid,
+         rankedpoints,
+         RANK() OVER (ORDER BY rankedpoints DESC, userid ASC) as rank
+       FROM ranks
+     ),
+     user_rank AS (
+       SELECT rank FROM ranked_users WHERE userid = $1
+     )
+     SELECT 
+       ranked_users.userid,
+       ranked_users.rankedpoints,
+       ranked_users.rank
+     FROM ranked_users, user_rank
+     WHERE ranked_users.rank BETWEEN (user_rank.rank - $2) AND (user_rank.rank + $2)
+     ORDER BY ranked_users.rank ASC`,
+    [userId, cappedRange]
+  );
+  
+  return rows;
 }

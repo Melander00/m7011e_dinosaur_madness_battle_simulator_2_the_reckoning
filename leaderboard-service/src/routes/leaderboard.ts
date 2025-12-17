@@ -66,4 +66,48 @@ router.get('/me', requireAuth, async (req, res, next) => {
   }
 });
 
+/**
+ * GET /leaderboard/nearby?range=5
+ * Get players near the authenticated user's rank
+ * Default range: 5 (5 above and 5 below), Max range: 50
+ * Requires valid JWT token
+ * Returns players ranked near the user for better context
+ */
+router.get('/nearby', requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.userId; // Keycloak sub from JWT
+    
+    if (!userId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+    
+    const range = parseInt(req.query.range as string, 10) || 5;
+    
+    if (isNaN(range) || range < 1) {
+      return res.status(400).json({ error: 'Invalid range parameter' });
+    }
+    
+    const rows = await rankRepo.getNearby(userId, range);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'User not found in leaderboard',
+        userId 
+      });
+    }
+    
+    return res.json({
+      nearby: rows.map(r => ({
+        rank: r.rank,
+        userId: r.userid,
+        rankedPoints: r.rankedpoints,
+        isCurrentUser: r.userid === userId
+      })),
+      count: rows.length
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 export default router;
