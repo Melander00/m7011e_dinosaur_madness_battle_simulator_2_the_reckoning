@@ -17,7 +17,7 @@ environment: Development
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_game-frontend
-  tag: "bed627d"
+  tag: "50dcee6"
 
 # Ingress configuration
 ingress:
