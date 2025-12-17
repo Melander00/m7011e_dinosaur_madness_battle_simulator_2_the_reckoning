@@ -21,9 +21,22 @@ image:
 
 server:
   image: ghcr.io/melander00/m7011e_game-server
-  serverTag: ""
+  serverTag: "latest"
   domain: game.ltu-m7011e-1.se
   namespace: game-servers
+
+rabbit:
+  username: "admin"
+  password: "admin123"
+  host: rabbitmq-service-api.rabbitmq.svc.cluster.local
+  port: "5672"
+
+redis:
+  username: 
+  password: 
+  host: redis-service.dev.svc.cluster.local
+  port: "6379"
+  db: "1"
 
 # Ingress configuration
 ingress:
