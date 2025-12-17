@@ -17,4 +17,4 @@ FROM nginx:1.29.3
 
 COPY --from=builder /app/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 
-COPY --from=builder /app/dist/ /usr/share/nginx/html/
+COPY --from=builder /app/dist/ /usr/share/nginx/html/game/
