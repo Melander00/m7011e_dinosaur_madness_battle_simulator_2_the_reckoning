@@ -1,0 +1,23 @@
+app:
+  name: leaderboard
+  replicas: 1
+  port: 3005
+
+# Development domain - change to your assigned domain
+domain: leaderboard-staging.ltu-m7011e-1.se
+
+# Email for Let's Encrypt certificates
+email: johan.kristiansson@ltu.se
+
+# Environment identifier
+environment: Staging
+
+# Container image
+image:
+  repository: ghcr.io/melander00/m7011e_leaderboard-service
+  tag: 0f0cb39
+
+# Ingress configuration
+ingress:
+  # Use staging for testing to avoid rate limits
+  certIssuer: letsencrypt-staging

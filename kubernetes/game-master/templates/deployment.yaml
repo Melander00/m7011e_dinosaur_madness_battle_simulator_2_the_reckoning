@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  replicas: {{ .Values.app.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      containers:
+      - name: leaderboard
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        ports:
+        - containerPort: 3005
+        env:
+          - name: REDIS_USERNAME
+            value: 
+          - name: REDIS_PASSWORD
+            value:
+          - name: REDIS_HOST
+            value: redis-service.redis.svc.cluster.local
+          - name: REDIS_PORT
+            value: "6379"
+          - name: REDIS_DB
+            value: "1"
+          - name: RABBITMQ_USERNAME
+            value: "admin"
+          - name: RABBITMQ_PASSWORD
+            value: "admin123"
+          - name: RABBITMQ_HOST
+            value: rabbitmq-service-api.rabbitmq.svc.cluster.local
+          - name: RABBITMQ_PORT
+            value: "5672"
+          - name: GAME_SERVER_IMAGE
+            value: {{ .Values.server.image }}:{{ .Values.server.serverTag }}
+          - name: GAME_SERVER_NAMESPACE
+            value: {{ .Values.server.namespace }}
+          - name: GAME_SERVER_DOMAIN
+            value: {{ .Values.server.domain }}
