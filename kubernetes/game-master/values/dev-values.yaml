@@ -21,7 +21,7 @@ image:
 
 server:
   image: ghcr.io/melander00/m7011e_game-server
-  serverTag: "latest"
+  serverTag: ""
   domain: game.ltu-m7011e-1.se
   namespace: game-servers
 
