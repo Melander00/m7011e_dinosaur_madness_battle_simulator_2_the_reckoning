@@ -7,3 +7,6 @@ service:
   type: ClusterIP
   port: 6379
 resources: {}
+
+app:
+  name: redis
