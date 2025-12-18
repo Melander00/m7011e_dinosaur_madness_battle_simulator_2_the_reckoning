@@ -72,7 +72,7 @@ const io = new Server(server, {
         ],
         credentials: true,
     },
-    path: `${SUBPATH}/socket.io`
+    path: `${SUBPATH}/socket.io` 
 })
 
 io.use(async (socket, next) => {
