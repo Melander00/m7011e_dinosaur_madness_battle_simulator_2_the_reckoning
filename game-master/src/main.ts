@@ -71,6 +71,10 @@ const completedMatchConsumer = rabbitmq.createConsumer({
     exchanges: [{
         exchange: "match-events",
         type: "topic"
+    }],
+    queueBindings: [{
+        exchange: "match-events",
+        routingKey: "match.result.*"
     }]
 }, async (msg) => {
     const body: { matchId: string } = msg.body
