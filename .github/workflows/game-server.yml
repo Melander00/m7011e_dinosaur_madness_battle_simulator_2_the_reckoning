@@ -56,6 +56,10 @@ jobs:
 
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
+      - name: Update local git repo
+        run: |
+          git pull
+
       # 5. Update Helm values for dev
       - name: Update dev environment values
         run: |
@@ -66,7 +70,6 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git pull
           git add kubernetes/game-master/values/dev-values.yaml
           git commit -m "Update game-server image to ${IMAGE_TAG}"
           git push
