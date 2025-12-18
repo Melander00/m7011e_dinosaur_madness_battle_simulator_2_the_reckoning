@@ -21,7 +21,7 @@ image:
 
 server:
   image: ghcr.io/melander00/m7011e_game-server
-  serverTag: "00edee6"
+  serverTag: "b3d523a"
   domain: game.ltu-m7011e-1.se
   namespace: game-servers
   subpath: "/{ID}"
