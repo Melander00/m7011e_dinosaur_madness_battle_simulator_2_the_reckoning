@@ -46,3 +46,7 @@ spec:
             value: "{{ .Values.server.namespace }}"
           - name: GAME_SERVER_DOMAIN
             value: "{{ .Values.server.domain }}"
+          - name: GAME_SERVER_SUBPATH
+            value: "{{ .Values.server.subpath }}"
+          - name: CLUSTER_ISSUER
+            value: "{{ .Values.server.clusterIssuer }}"

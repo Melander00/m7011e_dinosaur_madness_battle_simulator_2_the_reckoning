@@ -22,8 +22,10 @@ image:
 server:
   image: ghcr.io/melander00/m7011e_game-server
   serverTag: "00edee6"
-  domain: ltu-m7011e-1.se
+  domain: game.ltu-m7011e-1.se
   namespace: game-servers
+  subpath: "/{ID}"
+  clusterIssuer: letsencrypt-prod
 
 rabbit:
   username: "admin"
