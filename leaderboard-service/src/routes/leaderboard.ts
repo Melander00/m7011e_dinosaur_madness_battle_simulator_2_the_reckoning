@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth } from '../../../shared/auth/keycloak';
+import { requireAuth } from '../auth/keycloak';
 import * as rankRepo from '../repositories/rankRepository';
 
 const router = express.Router();
@@ -12,11 +12,12 @@ const router = express.Router();
  */
 router.get('/top', async (req, res, next) => {
   try {
-    const limit = parseInt(req.query.limit as string, 10) || 10;
-    
-    if (isNaN(limit) || limit < 1) {
-      return res.status(400).json({ error: 'Invalid limit parameter' });
-    }
+    // Graceful defaulting: invalid inputs use default, then cap at max
+    const limitParam = parseInt(req.query.limit as string, 10);
+    const limit = Math.min(
+      isNaN(limitParam) || limitParam < 1 ? 10 : limitParam,
+      100
+    );
     
     const rows = await rankRepo.getTop(limit);
     
@@ -81,11 +82,12 @@ router.get('/nearby', requireAuth, async (req, res, next) => {
       return res.status(500).json({ error: 'User ID not found in token' });
     }
     
-    const range = parseInt(req.query.range as string, 10) || 5;
-    
-    if (isNaN(range) || range < 1) {
-      return res.status(400).json({ error: 'Invalid range parameter' });
-    }
+    // Graceful defaulting: invalid inputs use default, then cap at max
+    const rangeParam = parseInt(req.query.range as string, 10);
+    const range = Math.min(
+      isNaN(rangeParam) || rangeParam < 1 ? 5 : rangeParam,
+      50
+    );
     
     const rows = await rankRepo.getNearby(userId, range);
     

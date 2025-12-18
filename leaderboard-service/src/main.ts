@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import { query } from "./db";
-import { requireAuth } from "../../shared/auth/keycloak";
+import { requireAuth } from "./auth/keycloak";
 
 import leaderboardRouter from "./routes/leaderboard";
 
@@ -111,8 +111,13 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     });
 });
 
-// Start server (DB migrations handled by Flyway in db/ folder)
-app.listen(PORT, () => {
-    console.log(`leaderboard-service listening on http://localhost:${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// Export app for testing
+export { app };
+
+// Start server only if not imported as module
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`leaderboard-service listening on http://localhost:${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+}
