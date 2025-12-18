@@ -17,7 +17,7 @@ environment: Development
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_game-master
-  tag: "c932a3b"
+  tag: "3c1f1ba"
 
 server:
   image: ghcr.io/melander00/m7011e_game-server
