@@ -2,10 +2,11 @@ import { V1Ingress } from "@kubernetes/client-node";
 
 type IngressManifestOptions = {
     matchId: string;
-    domain: string
+    domain: string;
+    subpath: string;
 };
 
-export function createIngressManifest({ matchId, domain }: IngressManifestOptions): V1Ingress {
+export function createIngressManifest({ matchId, domain, subpath }: IngressManifestOptions): V1Ingress {
     return {
         metadata: {
             name: `match-${matchId}-ingress`,
@@ -14,7 +15,7 @@ export function createIngressManifest({ matchId, domain }: IngressManifestOption
                 "traefik.ingress.kubernetes.io/router.entrypoints": "websecure",
                 "traefik.ingress.kubernetes.io/router.tls": "true",
                 "traefik.ingress.kubernetes.io/router.middlewares": "game-servers-cors@kubernetescrd",
-                "cert-manager.io/cluster-issuer": "letsencrypt-staging",
+                "cert-manager.io/cluster-issuer": process.env["CLUSTER_ISSUER"] || "letsencrypt-staging",
             },
             labels: {
                 app: "game-server",
@@ -27,7 +28,7 @@ export function createIngressManifest({ matchId, domain }: IngressManifestOption
                 host: domain,
                 http: {
                     paths: [{
-                        path: "/",
+                        path: subpath,
                         pathType: "Prefix",
                         backend: {
                             service: {
@@ -42,7 +43,7 @@ export function createIngressManifest({ matchId, domain }: IngressManifestOption
             }],
             tls: [{
                 hosts: [
-                    "*.ltu-m7011e-1.se"
+                    domain
                 ],
                 secretName: "game-server-tls"
             }]

@@ -10,6 +10,7 @@ export type ServerOptions = {
     namespace: string;
     domain: string;
     ranked: boolean;
+    subpath: string;
 };
 
 export class GameServer {
@@ -27,6 +28,7 @@ export class GameServer {
     ingressName: string | null = null;
 
     domain: string;
+    subpath: string;
 
     constructor(options: ServerOptions, coreApi: CoreV1Api, networkApi: NetworkingV1Api) {
         this.matchId = options.matchId;
@@ -37,7 +39,8 @@ export class GameServer {
 
         this.coreApi = coreApi;
         this.networkApi = networkApi;
-        this.domain = `${options.matchId}.${options.domain}`;
+        this.domain = options.domain;
+        this.subpath = options.subpath;
     }
 
     async init() {
@@ -47,6 +50,7 @@ export class GameServer {
                 user1: this.user1,
                 user2: this.user2,
                 ranked: this.ranked,
+                subpath: this.subpath,
             }),
             namespace: this.namespace,
         });
@@ -61,7 +65,7 @@ export class GameServer {
         this.serviceName = service.metadata?.name ?? null;
 
         const ingress = await this.networkApi.createNamespacedIngress({
-            body: createIngressManifest({ matchId: this.matchId, domain: this.domain }),
+            body: createIngressManifest({ matchId: this.matchId, domain: this.domain, subpath: this.subpath }),
             namespace: this.namespace,
         });
 

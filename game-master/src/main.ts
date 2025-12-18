@@ -4,10 +4,12 @@ import cors from "cors";
 import "dotenv/config";
 import express from "express";
 import { ConsumerStatus } from "rabbitmq-client";
-import { handleExpiredMatches } from "./db/redis";
+import { getMatchById, handleExpiredMatches, removeMatchById, resetUsers } from "./db/redis";
 import { startGameServer } from "./game/server";
 import { removeServerById } from "./k8s/kubernetes";
+import { delay } from "./lib/delay";
 import { rabbitmq } from "./messaging/rabbitmq";
+import { decActiveMatches, incActiveMatches } from "./monitoring/prometheus";
 import { initRoutes } from "./routes";
 
 
@@ -51,9 +53,41 @@ const createMatchConsumer = rabbitmq.createConsumer({
         return ConsumerStatus.DROP 
     }
 
+    console.log("Starting new server")
+
     await startGameServer(user1, user2, body.ranked ?? false)
+
+    incActiveMatches()
 })
 
+const completedMatchConsumer = rabbitmq.createConsumer({
+    queue: "master-match-complete",
+    queueOptions: {
+        durable: true,
+    },
+    qos: {
+        prefetchCount: 1,
+    },
+    exchanges: [{
+        exchange: "match-events",
+        type: "topic"
+    }]
+}, async (msg) => {
+    const body: { matchId: string } = msg.body
+    console.log("Match finished, removing...")
+
+    await delay(1000)
+    await removeFinishedMatch(body.matchId)
+    decActiveMatches()
+})
+
+async function removeFinishedMatch(matchId: string) {
+    const data = await getMatchById(matchId)
+    if(!data) return;
+    await removeServerById(data.matchId, data.namespace)
+    await removeMatchById(matchId)
+    await resetUsers(data.userIds)
+}
 
 // TODO: Make this a CronJob on the cluster instead. 
 // When replicating this we may try to remove servers multiple times
@@ -67,6 +101,7 @@ const interval = setInterval(removeExpiredMatches, 1000 * 60)
 
 async function onShutdown() {
     clearInterval(interval)
+    await completedMatchConsumer.close()
     await createMatchConsumer.close();
     await rabbitmq.close();
 }

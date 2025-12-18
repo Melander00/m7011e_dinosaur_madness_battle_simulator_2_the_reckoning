@@ -9,6 +9,10 @@ const server = http.createServer(app);
 const USER1 = process.env["USER1"]
 const USER2 = process.env["USER2"]
 const MATCH_ID = process.env["MATCH_ID"]
+const RANKED = process.env["RANKED"]
+const SUBPATH = process.env["SUBPATH"] || ""
+const PORT = parseInt(process.env["PORT"] || "3000")
+
 
 if (!USER1 || !USER2) {
     console.error("User1 or User2 environment variables not set. Make sure they are identical to JWT.sub.")
@@ -30,12 +34,11 @@ app.get("/health", (req, res) => {
     res.send("Alive")
 })
 
-const PORT = parseInt(process.env["PORT"] || "3000")
 
 const publisher = rabbitmq.createPublisher({
     confirm: true,
     maxAttempts: 5,
-    exchanges: [{ exchange: "match-events", type: "topic" }],
+    exchanges: [{ exchange: "match-events", type: "fanout" }],
 
 })
 
@@ -51,7 +54,7 @@ game.onGameOver(({winner, loser}) => {
         loserId: loser.id,
         matchId: MATCH_ID,  
         timestamp: Date.now(),
-        ranked: isTruthy(process.env["RANKED"]) 
+        ranked: isTruthy(RANKED) 
     })
 })
 
@@ -68,7 +71,8 @@ const io = new Server(server, {
             "https://ltu-m7011e-1.se"
         ],
         credentials: true,
-    }
+    },
+    path: `${SUBPATH}/socket.io`
 })
 
 io.use(async (socket, next) => {

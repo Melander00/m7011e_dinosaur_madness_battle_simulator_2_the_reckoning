@@ -5,13 +5,15 @@ type PodManifestOptions = {
     user1: string,
     user2: string,
     ranked: boolean,
+    subpath: string,
 }
 
 export function createPodManifest({
     matchId,
     user1,
     user2,
-    ranked
+    ranked,
+    subpath,
 }: PodManifestOptions): V1Pod {
     return {
         metadata: {
@@ -34,15 +36,12 @@ export function createPodManifest({
                     {name: "USER1", value: user1},
                     {name: "USER2", value: user2},
                     {name: "RANKED", value: ranked ? "1" : "0"},
+                    {name: "SUBPATH", value: subpath},
 
                     {name: "RABBITMQ_USERNAME", value: process.env["RABBITMQ_USERNAME"]},
                     {name: "RABBITMQ_PASSWORD", value: process.env["RABBITMQ_PASSWORD"]},
-                    {name: "RABBITMQ_HOST", value: "rabbitmq-service-api.rabbitmq.svc.cluster.local"},
+                    {name: "RABBITMQ_HOST", value: process.env["RABBITMQ_HOST"]},
                     {name: "RABBITMQ_PORT", value: process.env["RABBITMQ_PORT"]},
-                    // {name: "RABBITMQ_USERNAME", value: process.env["RABBITMQ_USERNAME"]},
-                    // {name: "RABBITMQ_PASSWORD", value: process.env["RABBITMQ_PASSWORD"]},
-                    // {name: "RABBITMQ_HOST", value: process.env["RABBITMQ_HOST"]},
-                    // {name: "RABBITMQ_PORT", value: process.env["RABBITMQ_PORT"]},
                 ]
             }],
             restartPolicy: "Never"

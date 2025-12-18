@@ -1,6 +1,7 @@
 import { io } from "socket.io-client";
+import type { MatchDomainResponse } from "../domain";
 
-export function initGame(domain: string, token: string) {
+export function initGame(res: MatchDomainResponse, token: string) {
     // Canvas setup
     const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
     const ctx = canvas.getContext("2d");
@@ -12,7 +13,7 @@ export function initGame(domain: string, token: string) {
     // Load sprite sheet from Graphical Assets folder
     const img = new Image();
     console.log("Attempting to load sprite sheet...");
-    img.src = "Graphical Assets/sheet_all.png";
+    img.src = "./Graphical Assets/sheet_all.png";
 
     // Sprite sheet dimensions - will be calculated once image loads
     let FRAME_WIDTH = 0;
@@ -37,10 +38,11 @@ export function initGame(domain: string, token: string) {
     let myPlayerNum = null;
     let imageLoaded = false;
 
-    const socket = io(`https://${domain}/`, {
+    const socket = io(`https://${res.domain}/`, {
         auth: {
             token: token,
         },
+        path: `${res.subpath}/socket.io`
     });
 
     // Receive player number from server

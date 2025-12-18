@@ -12,10 +12,10 @@ async function load() {
     if(!token) return;
 
     try {
-        const domain = await getMatchDomain(token)
+        const res = await getMatchDomain(token)
         loadingDiv.classList.add("hidden")
         gameDiv.classList.remove("hidden")
-        initGame(domain, token)
+        initGame(res, token)
     } catch (err) {
 
         if(err instanceof Error) {

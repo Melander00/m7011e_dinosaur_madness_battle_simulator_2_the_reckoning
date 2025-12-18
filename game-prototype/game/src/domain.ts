@@ -1,11 +1,14 @@
 import { req } from "./req";
 
-type MatchDomainResponse = {
+export type MatchDomainResponse = {
     domain: string;
+    subpath: string;
 };
 
-export async function getMatchDomain(token: string) {
-    const body = await req<MatchDomainResponse>("https://game-master.ltu-m7011e-1.se/match", {
+const DOMAIN_ENDPOINT = import.meta.env.DEV ? "http://localhost:8080/match" : "https://game-master.ltu-m7011e-1.se/match"
+
+export async function getMatchDomain(token: string): Promise<MatchDomainResponse> {
+    const body = await req<MatchDomainResponse>(DOMAIN_ENDPOINT, {
         headers: {
             "Authorization": "Bearer " + token,
         },
@@ -13,9 +16,12 @@ export async function getMatchDomain(token: string) {
 
     if (body.success) {
         if (typeof body.data === "string") {
-            return body.data;
+            return {
+                domain: body.data,
+                subpath: ""
+            };
         } else {
-            return body.data.domain;
+            return body.data;
         }
     } else {
         throw new Error(body.text);

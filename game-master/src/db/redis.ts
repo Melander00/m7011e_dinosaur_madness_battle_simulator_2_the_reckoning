@@ -64,7 +64,7 @@ export async function storeMatch(server: StoredGameServer, options?: SetOptions 
 }
 
 export async function handleExpiredMatches(consumer: (server: StoredGameServer) => void) {
-    const keys = await redis.keys("GAME_SERVER:*")
+    const keys = await redis.keys(MATCH("*"))
     const now = Date.now()
 
     const expiredServers: any[] = []
@@ -85,5 +85,15 @@ export async function handleExpiredMatches(consumer: (server: StoredGameServer) 
     expiredServers.forEach((m) => {
         consumer(m)
         redis.del(m.key)
+    })
+}
+
+export async function removeMatchById(matchId: string) {
+    await redis.del(MATCH(matchId))
+}
+
+export async function resetUsers(users: string[]) {
+    users.forEach((u) => {
+        redis.del(USER_ACTIVE_MATCH(u))
     })
 }
