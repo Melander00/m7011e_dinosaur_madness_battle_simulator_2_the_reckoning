@@ -96,8 +96,9 @@ async function removeFinishedMatch(matchId: string) {
 // TODO: Make this a CronJob on the cluster instead. 
 // When replicating this we may try to remove servers multiple times
 async function removeExpiredMatches() {
-    await handleExpiredMatches(expired => {
-        removeServerById(expired.matchId, expired.namespace)
+    await handleExpiredMatches(async expired => {
+        await removeServerById(expired.matchId, expired.namespace)
+        decActiveMatches()
     })
 }
 removeExpiredMatches()
