@@ -38,8 +38,7 @@ app.get("/health", (req, res) => {
 const publisher = rabbitmq.createPublisher({
     confirm: true,
     maxAttempts: 5,
-    exchanges: [{ exchange: "match-events", type: "fanout" }],
-
+    exchanges: [{ exchange: "match-events", type: "topic" }],
 })
 
 game.init(USER1, USER2)
