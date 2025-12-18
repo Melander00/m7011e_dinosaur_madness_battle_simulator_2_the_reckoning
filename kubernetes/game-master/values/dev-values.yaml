@@ -22,7 +22,7 @@ image:
 server:
   image: ghcr.io/melander00/m7011e_game-server
   serverTag: "00edee6"
-  domain: game.ltu-m7011e-1.se
+  domain: ltu-m7011e-1.se
   namespace: game-servers
 
 rabbit:
