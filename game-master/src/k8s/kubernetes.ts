@@ -1,11 +1,11 @@
-import * as k8s from "@kubernetes/client-node";
+import { CoreV1Api, KubeConfig, NetworkingV1Api } from "@kubernetes/client-node";
 import { GameServer, ServerOptions } from "../game/GameServer";
 
-const kc = new k8s.KubeConfig();
+const kc = new KubeConfig();
 kc.loadFromDefault()
 
-const k8sApi = kc.makeApiClient(k8s.CoreV1Api)
-const networkApi = kc.makeApiClient(k8s.NetworkingV1Api)
+const k8sApi = kc.makeApiClient(CoreV1Api)
+const networkApi = kc.makeApiClient(NetworkingV1Api)
 
 export async function createGameServer(options: ServerOptions) {
     const server = await GameServer.create(options, k8sApi, networkApi)

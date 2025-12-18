@@ -7,7 +7,8 @@
     "build:dev": "npx tsc -p tsconfig.dev.json",
     "start": "node dist/main.js",
     "build": "npx tsc -p tsconfig.prod.json",
-    "lint": "npx eslint ."
+    "lint": "npx eslint .",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -30,8 +31,13 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/express": "^5.0.5",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
+    "@types/supertest": "^6.0.3",
     "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4"
   }
