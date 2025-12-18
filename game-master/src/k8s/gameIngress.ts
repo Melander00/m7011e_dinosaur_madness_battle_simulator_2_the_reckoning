@@ -42,7 +42,7 @@ export function createIngressManifest({ matchId, domain }: IngressManifestOption
             }],
             tls: [{
                 hosts: [
-                    domain
+                    "*.ltu-m7011e-1.se"
                 ],
                 secretName: "game-server-tls"
             }]
