@@ -37,8 +37,6 @@ export function initConsumers(rabbitmq: Connection) {
             return ConsumerStatus.DROP 
         }
 
-        console.log("Starting new server")
-
         await startGameServer(user1, user2, body.ranked ?? false)
 
         incActiveMatches()
@@ -62,7 +60,6 @@ export function initConsumers(rabbitmq: Connection) {
         }]
     }, async (msg) => {
         const body: { matchId: string } = msg.body
-        console.log("Match finished, removing...")
 
         await delay(1000)
         await removeFinishedMatch(body.matchId)

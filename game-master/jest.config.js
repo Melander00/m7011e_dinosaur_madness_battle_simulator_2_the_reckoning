@@ -6,22 +6,13 @@ const tsJestTransformCfg = createDefaultPreset().transform;
 module.exports = {
   testEnvironment: "node",
   transform: {
-    ...tsJestTransformCfg,
+    ...tsJestTransformCfg
   },
+  preset: "ts-jest",
+collectCoverage: true,
+  collectCoverageFrom: [
+    "src/**/*.ts",        // include all JS files in src
+    "!src/**/*.test.js",  // exclude test files
+  ],
+  coverageDirectory: "coverage",
 };
-
-// /** @type {import('ts-jest').JestConfigWithTsJest} */
-// module.exports = {
-//   preset: 'ts-jest',
-//   testEnvironment: 'node',
-
-//   // Include your source and test files
-//   roots: ['<rootDir>/src', '<rootDir>/test'],
-
-//   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-
-//   // This tells Jest to transform @kubernetes/client-node as well
-//   transformIgnorePatterns: [
-//     "node_modules/(?!@kubernetes/client-node)"
-//   ],
-// };

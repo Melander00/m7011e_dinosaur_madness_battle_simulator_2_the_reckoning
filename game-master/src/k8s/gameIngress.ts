@@ -1,4 +1,4 @@
-import { V1Ingress } from "@kubernetes/client-node";
+import type { V1Ingress } from "@kubernetes/client-node";
 
 type IngressManifestOptions = {
     matchId: string;
