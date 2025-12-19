@@ -8,5 +8,8 @@ export function createApp() {
     app.use(bodyParser.json())
     app.use(cors())
     initRoutes(app)
+    app.listen(8080, () => {
+        console.log("Listening on port 8080");
+    });
     return app;
 }

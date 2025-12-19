@@ -9,10 +9,6 @@ module.exports = {
     ...tsJestTransformCfg
   },
   preset: "ts-jest",
-collectCoverage: true,
-  collectCoverageFrom: [
-    "src/**/*.ts",        // include all JS files in src
-    "!src/**/*.test.js",  // exclude test files
-  ],
+  collectCoverage: true,
   coverageDirectory: "coverage",
 };
