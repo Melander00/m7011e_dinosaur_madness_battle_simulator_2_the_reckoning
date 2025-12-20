@@ -1,42 +1,52 @@
-// API helper for leaderboard service
-// Adapted from Keycloak Tutorial Part 5: Protect Backend API
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://leaderboard-dev.ltu-m7011e-1.se"
+  : "http://localhost:3005";
 
-const API_BASE_URL = 'http://localhost:3005';
+type FetchOptions = RequestInit & { token?: string };
 
-/**
- * Helper function to make authenticated requests to backend
- * Automatically adds JWT token to Authorization header
- */
-const authFetch = async (url: string, token: string, options: RequestInit = {}) => {
-  const response = await fetch(url, {
-    ...options,
+const fetchJson = async <T>(path: string, options: FetchOptions = {}): Promise<T> => {
+  const { token, headers, ...rest } = options;
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...rest,
     headers: {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
+      ...headers,
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    const error = await response.json().catch(() => ({ error: "Request failed" }));
     throw new Error(error.error || `HTTP ${response.status}`);
   }
 
   return response.json();
 };
 
-/**
- * Get user's ELO score from leaderboard service
- * This is a protected endpoint - requires valid JWT token
- * 
- * @param token - JWT token from Keycloak
- * @param userId - User ID to fetch ELO for
- * @returns User's ELO data
- */
-export const getUserElo = async (token: string, userId: string) => {
-  return authFetch(`${API_BASE_URL}/elo/${userId}`, token);
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  rankedPoints: number;
+}
+
+export interface UserRank {
+  userId: string;
+  rank: number;
+  rankedPoints: number;
+}
+
+export interface UserInfo {
+  userId: string;
+  quote: string | null;
+  profilePicture: string | null;
+  profileBanner: string | null;
+}
+
+export const getTopPlayers = async (limit: number = 10): Promise<LeaderboardEntry[]> => {
+  const data = await fetchJson<{ leaderboard: LeaderboardEntry[] }>(`/leaderboard/top?limit=${limit}`);
+  return data.leaderboard;
 };
 
-// Add more leaderboard API functions here as needed:
-// export const getGlobalLeaderboard = async (token: string) => { ... }
-// export const getFriendLeaderboard = async (token: string) => { ... }
+export const getMyRank = async (token: string): Promise<UserRank> => {
+  return fetchJson<UserRank>("/leaderboard/me", { token });
+};
