@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: game-frontend-prod
+  namespace: argocd
+spec:
+  project: default
+
+  # Source defines where ArgoCD pulls the application from
+  source:
+    repoURL: 'https://github.com/Melander00/m7011e_dinosaur_madness_battle_simulator_2_the_reckoning.git'
+    targetRevision: main          # Git branch or tag
+    path: kubernetes/game-frontend
+    helm:
+      valueFiles:
+        - values/prod-values.yaml       # Environment-specific overrides
+
+  # Destination defines where the app is deployed
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod
+
+  # Sync policy controls automated deployment behavior
+  syncPolicy:
+    automated:
+      prune: true       # Delete resources that are removed from git
+      selfHeal: true    # Revert manual changes to match git
+    syncOptions:
+      - CreateNamespace=true   # Automatically create namespace if missing
