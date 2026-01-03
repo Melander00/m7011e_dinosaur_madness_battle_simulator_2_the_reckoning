@@ -16,7 +16,7 @@ const client = createClient({
 client.on("error", err => console.log("Redis Error %o", err))
 client.on("connection", () => console.log("Redis Connected"))
 
-client.connect()
+let redis: typeof client | undefined = undefined;
 
 export async function initRedis() {
     if(client.isOpen) {
@@ -24,22 +24,22 @@ export async function initRedis() {
     }
 
     await client.connect()
-
+    redis = client;
     return client;
 }
 
-export const redis = client;
+// const redis = client;
 
 
 const MATCH_TTL = 600;
 const USER_ACTIVE_MATCH = (id:string) => `USER_ACTIVE_MATCH:${id}`
 
 export async function getUserActiveMatch(userId: string) {
-    return redis.get(USER_ACTIVE_MATCH(userId))
+    return redis?.get(USER_ACTIVE_MATCH(userId))
 }
 
 export async function setUserActiveMatch(userId: string, matchId: string, options?: SetOptions | undefined) {
-    await redis.set(USER_ACTIVE_MATCH(userId), matchId, {
+    await redis?.set(USER_ACTIVE_MATCH(userId), matchId, {
         expiration: {
             type: "EX",
             value: MATCH_TTL
@@ -51,26 +51,26 @@ export async function setUserActiveMatch(userId: string, matchId: string, option
 const MATCH = (id: string) => `GAME_SERVER:${id}`
 
 export async function getMatchById(matchId: string): Promise<StoredGameServer | null> {
-    const data = await redis.get(MATCH(matchId))
+    const data = await redis?.get(MATCH(matchId))
     if(!data) return null;
     return JSON.parse(data) as StoredGameServer
 }
 
 export async function storeMatch(server: StoredGameServer, options?: SetOptions | undefined) {
     server.expiresAt = Date.now() + MATCH_TTL * 1000;
-    await redis.set(MATCH(server.matchId), JSON.stringify(server), {
+    await redis?.set(MATCH(server.matchId), JSON.stringify(server), {
         ...options,
     })
 }
 
 export async function handleExpiredMatches(consumer: (server: StoredGameServer) => void) {
-    const keys = await redis.keys(MATCH("*"))
+    const keys = await redis?.keys(MATCH("*"))
     const now = Date.now()
 
     const expiredServers: any[] = []
 
-    for(const key of keys) {
-        const json = await redis.get(key)
+    for(const key of keys ?? []) {
+        const json = await redis?.get(key)
         if(!json) continue;
         const data = JSON.parse(json)
         if(!data.expiresAt) {
@@ -84,16 +84,21 @@ export async function handleExpiredMatches(consumer: (server: StoredGameServer) 
     
     expiredServers.forEach((m) => {
         consumer(m)
-        redis.del(m.key)
+        redis?.del(m.key)
     })
 }
 
 export async function removeMatchById(matchId: string) {
-    await redis.del(MATCH(matchId))
+    await redis?.del(MATCH(matchId))
 }
 
 export async function resetUsers(users: string[]) {
     users.forEach((u) => {
-        redis.del(USER_ACTIVE_MATCH(u))
+        redis?.del(USER_ACTIVE_MATCH(u))
     })
+}
+
+export async function getAmountOfActiveMatches() {
+    const keys = await redis?.keys(MATCH("*"))
+    return keys?.length ?? 0;
 }

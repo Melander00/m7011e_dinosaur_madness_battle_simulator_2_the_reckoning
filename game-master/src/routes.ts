@@ -2,14 +2,29 @@ import type { Express } from "express";
 import { requireAuth } from "./auth/keycloak";
 import { getMatchById, getUserActiveMatch } from "./db/redis";
 import { createRequestDuration, getMetrics, incRequestCount, PromProps } from "./monitoring/prometheus";
+import { getOpenApiSpecs } from "./openapi/openapi";
 
 export function initRoutes(app: Express) {
+
+    app.get("/openapi", (req, res) => {
+        res.json(getOpenApiSpecs())
+    })
+
     app.get("/metrics", async (req, res) => {
         const data = await getMetrics()
         res.set("Content-Type", data.contentType)
         res.end(data.metrics)
     })
 
+    /**
+     * @openapi
+     * /:
+     *   get:
+     *     description: Match
+     *     responses:
+     *       200:
+     *         description: Ok
+     */
     app.get("/match", requireAuth, async (req, res) => {
 
         const props: PromProps = {
