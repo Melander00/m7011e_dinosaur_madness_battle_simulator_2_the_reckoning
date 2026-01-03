@@ -97,3 +97,8 @@ export async function resetUsers(users: string[]) {
         redis?.del(USER_ACTIVE_MATCH(u))
     })
 }
+
+export async function getAmountOfActiveMatches() {
+    const keys = await redis?.keys(MATCH("*"))
+    return keys?.length ?? 0;
+}

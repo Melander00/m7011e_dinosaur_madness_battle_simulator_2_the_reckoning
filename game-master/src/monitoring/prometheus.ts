@@ -1,8 +1,10 @@
 import { Counter, Gauge, Histogram, register } from "prom-client";
+import { getAmountOfActiveMatches } from "../db/redis";
 
 const SERVICE_NAME = "game-master"
 
 export async function getMetrics() {
+    activeMatches.set(await getAmountOfActiveMatches())
     return {
         metrics: await register.metrics(),
         contentType: register.contentType,
