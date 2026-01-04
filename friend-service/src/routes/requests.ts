@@ -1,38 +1,29 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { query } from '../../../shared/db';
+import { query } from '../db';
 
 const router = Router();
 
+// Status enum matching the database INTEGER values
+const RequestStatus = {
+  PENDING: 0,
+  ACCEPTED: 1,
+  REJECTED: 2
+} as const;
+
 interface IncomingRequest {
-  id: number;
-  fromUserID: number;
-  from_username: string;
-  status: string;
-  created_at: Date;
+  fromUserId: string;
+  status: number;
 }
 
 interface OutgoingRequest {
-  id: number;
-  toUserID: number;
-  to_username: string;
-  status: string;
-  created_at: Date;
-}
-
-interface UserIdRow {
-  userID: number;
+  toUserId: string;
+  status: number;
 }
 
 interface RequestRow {
-  id: number;
-  fromUserID: number;
-  toUserID: number;
-  status: string;
-  created_at: Date;
-}
-
-interface IdRow {
-  id: number;
+  fromUserId: string;
+  toUserId: string;
+  status: number;
 }
 
 /**
@@ -41,23 +32,18 @@ interface IdRow {
  */
 router.get('/incoming/:userId', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = parseInt(req.params.userId, 10);
-    if (!userId || isNaN(userId)) {
+    const userId = req.params.userId;
+    if (!userId) {
       return res.status(400).json({ error: 'Valid userId is required' });
     }
 
     const { rows } = await query<IncomingRequest>(
       `SELECT 
-        rr.id,
-        rr."fromUserID",
-        u.username as from_username,
-        rr.status,
-        rr.created_at
-      FROM "RelationshipRequests" rr
-      JOIN "USER" u ON u."userID" = rr."fromUserID"
-      WHERE rr."toUserID" = $1 AND rr.status = 'pending'
-      ORDER BY rr.created_at DESC`,
-      [userId]
+        rr.fromUserId,
+        rr.status
+      FROM relationshipRequests rr
+      WHERE rr.toUserId = $1 AND rr.status = $2`,
+      [userId, RequestStatus.PENDING]
     );
 
     return res.json({ userId, requests: rows, count: rows.length });
@@ -72,22 +58,17 @@ router.get('/incoming/:userId', async (req: Request, res: Response, next: NextFu
  */
 router.get('/outgoing/:userId', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = parseInt(req.params.userId, 10);
-    if (!userId || isNaN(userId)) {
+    const userId = req.params.userId;
+    if (!userId) {
       return res.status(400).json({ error: 'Valid userId is required' });
     }
 
     const { rows } = await query<OutgoingRequest>(
       `SELECT 
-        rr.id,
-        rr."toUserID",
-        u.username as to_username,
-        rr.status,
-        rr.created_at
-      FROM "RelationshipRequests" rr
-      JOIN "USER" u ON u."userID" = rr."toUserID"
-      WHERE rr."fromUserID" = $1
-      ORDER BY rr.created_at DESC`,
+        rr.toUserId,
+        rr.status
+      FROM relationshipRequests rr
+      WHERE rr.fromUserId = $1`,
       [userId]
     );
 
@@ -100,27 +81,24 @@ router.get('/outgoing/:userId', async (req: Request, res: Response, next: NextFu
 /**
  * POST /requests
  * Create a new friend request
- * Body: { fromUserID: number, toUserID: number }
+ * Body: { fromUserId: string, toUserId: string }
  */
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { fromUserID, toUserID } = req.body || {};
-    
-    const fromId = parseInt(fromUserID, 10);
-    const toId = parseInt(toUserID, 10);
+    const { fromUserId, toUserId } = req.body || {};
 
-    if (!fromId || !toId || isNaN(fromId) || isNaN(toId)) {
-      return res.status(400).json({ error: 'Both fromUserID and toUserID are required as integers' });
+    if (!fromUserId || !toUserId) {
+      return res.status(400).json({ error: 'Both fromUserId and toUserId are required' });
     }
 
-    if (fromId === toId) {
+    if (fromUserId === toUserId) {
       return res.status(400).json({ error: 'Cannot send friend request to yourself' });
     }
 
     // Check if both users exist
-    const { rows: users } = await query<UserIdRow>(
-      `SELECT "userID" FROM "USER" WHERE "userID" IN ($1, $2)`,
-      [fromId, toId]
+    const { rows: users } = await query<{ userId: string }>(
+      `SELECT userId FROM users WHERE userId IN ($1, $2)`,
+      [fromUserId, toUserId]
     );
 
     if (users.length !== 2) {
@@ -128,13 +106,10 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Check if already friends
-    const minId = Math.min(fromId, toId);
-    const maxId = Math.max(fromId, toId);
-    
     const { rows: existing } = await query(
-      `SELECT 1 FROM "USER_RELATIONSHIP" 
-       WHERE "userID1" = $1 AND "userID2" = $2`,
-      [minId, maxId]
+      `SELECT 1 FROM relationships 
+       WHERE (userId1 = $1 AND userId2 = $2) OR (userId1 = $2 AND userId2 = $1)`,
+      [fromUserId, toUserId]
     );
 
     if (existing.length > 0) {
@@ -142,10 +117,10 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Check for existing pending request
-    const { rows: pendingRequests } = await query<IdRow>(
-      `SELECT id FROM "RelationshipRequests" 
-       WHERE "fromUserID" = $1 AND "toUserID" = $2 AND status = 'pending'`,
-      [fromId, toId]
+    const { rows: pendingRequests } = await query(
+      `SELECT 1 FROM relationshipRequests 
+       WHERE fromUserId = $1 AND toUserId = $2 AND status = $3`,
+      [fromUserId, toUserId, RequestStatus.PENDING]
     );
 
     if (pendingRequests.length > 0) {
@@ -154,10 +129,10 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
     // Create request
     const { rows } = await query<RequestRow>(
-      `INSERT INTO "RelationshipRequests" ("fromUserID", "toUserID", status)
-       VALUES ($1, $2, 'pending')
-       RETURNING id, "fromUserID", "toUserID", status, created_at`,
-      [fromId, toId]
+      `INSERT INTO relationshipRequests (fromUserId, toUserId, status)
+       VALUES ($1, $2, $3)
+       RETURNING fromUserId, toUserId, status`,
+      [fromUserId, toUserId, RequestStatus.PENDING]
     );
 
     return res.status(201).json({ 
@@ -173,50 +148,48 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * PUT /requests/:id/accept
+ * PUT /requests/accept
  * Accept a friend request and create friendship
+ * Body: { fromUserId: string, toUserId: string }
  */
-router.put('/:id/accept', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/accept', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const requestId = parseInt(req.params.id, 10);
-    if (!requestId || isNaN(requestId)) {
-      return res.status(400).json({ error: 'Valid request ID is required' });
+    const { fromUserId, toUserId } = req.body || {};
+    
+    if (!fromUserId || !toUserId) {
+      return res.status(400).json({ error: 'Both fromUserId and toUserId are required' });
     }
 
     // Get the request
-    const { rows: requests } = await query<any>(
-      `SELECT * FROM "RelationshipRequests" WHERE id = $1 AND status = 'pending'`,
-      [requestId]
+    const { rows: requests } = await query<RequestRow>(
+      `SELECT * FROM relationshipRequests 
+       WHERE fromUserId = $1 AND toUserId = $2 AND status = $3`,
+      [fromUserId, toUserId, RequestStatus.PENDING]
     );
 
     if (requests.length === 0) {
       return res.status(404).json({ error: 'Friend request not found or already processed' });
     }
 
-    const request = requests[0];
-    const userID1 = Math.min(request.fromUserID, request.toUserID);
-    const userID2 = Math.max(request.fromUserID, request.toUserID);
-
     // Create friendship
     await query(
-      `INSERT INTO "USER_RELATIONSHIP" ("userID1", "userID2")
+      `INSERT INTO relationships (userId1, userId2)
        VALUES ($1, $2)
        ON CONFLICT DO NOTHING`,
-      [userID1, userID2]
+      [fromUserId, toUserId]
     );
 
     // Update request status
     await query(
-      `UPDATE "RelationshipRequests" 
-       SET status = 'accepted', updated_at = NOW()
-       WHERE id = $1`,
-      [requestId]
+      `UPDATE relationshipRequests 
+       SET status = $1
+       WHERE fromUserId = $2 AND toUserId = $3`,
+      [RequestStatus.ACCEPTED, fromUserId, toUserId]
     );
 
     return res.json({ 
       message: 'Friend request accepted',
-      friendship: { userID1, userID2 },
-      requestId
+      friendship: { userId1: fromUserId, userId2: toUserId }
     });
   } catch (err) {
     return next(err);
@@ -224,22 +197,23 @@ router.put('/:id/accept', async (req: Request, res: Response, next: NextFunction
 });
 
 /**
- * PUT /requests/:id/reject
+ * PUT /requests/reject
  * Reject a friend request
+ * Body: { fromUserId: string, toUserId: string }
  */
-router.put('/:id/reject', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/reject', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const requestId = parseInt(req.params.id, 10);
-    if (!requestId || isNaN(requestId)) {
-      return res.status(400).json({ error: 'Valid request ID is required' });
+    const { fromUserId, toUserId } = req.body || {};
+    
+    if (!fromUserId || !toUserId) {
+      return res.status(400).json({ error: 'Both fromUserId and toUserId are required' });
     }
 
-    const result = await query<IdRow>(
-      `UPDATE "RelationshipRequests" 
-       SET status = 'rejected', updated_at = NOW()
-       WHERE id = $1 AND status = 'pending'
-       RETURNING id`,
-      [requestId]
+    const result = await query(
+      `UPDATE relationshipRequests 
+       SET status = $1
+       WHERE fromUserId = $2 AND toUserId = $3 AND status = $4`,
+      [RequestStatus.REJECTED, fromUserId, toUserId, RequestStatus.PENDING]
     );
 
     if (result.rowCount === 0) {
@@ -247,8 +221,7 @@ router.put('/:id/reject', async (req: Request, res: Response, next: NextFunction
     }
 
     return res.json({ 
-      message: 'Friend request rejected',
-      requestId
+      message: 'Friend request rejected'
     });
   } catch (err) {
     return next(err);
@@ -256,36 +229,30 @@ router.put('/:id/reject', async (req: Request, res: Response, next: NextFunction
 });
 
 /**
- * DELETE /requests/:id
+ * DELETE /requests
  * Delete/cancel a friend request (can only be done by sender)
+ * Body: { fromUserId: string, toUserId: string }
  */
-router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const requestId = parseInt(req.params.id, 10);
-    const { fromUserID } = req.body || {};
-    
-    if (!requestId || isNaN(requestId)) {
-      return res.status(400).json({ error: 'Valid request ID is required' });
+    const { fromUserId, toUserId } = req.body || {};
+
+    if (!fromUserId || !toUserId) {
+      return res.status(400).json({ error: 'Both fromUserId and toUserId are required' });
     }
 
-    if (!fromUserID) {
-      return res.status(400).json({ error: 'fromUserID is required to cancel request' });
-    }
-
-    const result = await query<IdRow>(
-      `DELETE FROM "RelationshipRequests" 
-       WHERE id = $1 AND "fromUserID" = $2
-       RETURNING id`,
-      [requestId, fromUserID]
+    const result = await query(
+      `DELETE FROM relationshipRequests 
+       WHERE fromUserId = $1 AND toUserId = $2`,
+      [fromUserId, toUserId]
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Friend request not found or unauthorized' });
+      return res.status(404).json({ error: 'Friend request not found' });
     }
 
     return res.json({ 
-      message: 'Friend request cancelled',
-      requestId
+      message: 'Friend request cancelled'
     });
   } catch (err) {
     return next(err);

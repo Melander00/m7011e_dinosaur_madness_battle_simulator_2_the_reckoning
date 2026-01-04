@@ -1,43 +1,28 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { query } from '../../../shared/db';
+import { query } from '../db';
 
 const router = Router();
 
 interface User {
-  userID: number;
-  username: string;
-  created_at: Date;
-}
-
-interface UserIdRow {
-  userID: number;
-  username: string;
+  userId: string;
+  quote: string | null;
+  profilePicture: Buffer | null;
+  profileBanner: Buffer | null;
 }
 
 /**
  * GET /users
- * Get all users (with optional search)
- * Query params: ?search=username&limit=50
+ * Get all users (with optional limit)
+ * Query params: ?limit=50
  */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const search = (req.query.search as string) || '';
     const limit = Math.min(parseInt((req.query.limit as string) || '50', 10), 100);
 
-    let sql = 'SELECT "userID", username, created_at FROM "USER"';
-    const params: any[] = [];
-
-    if (search) {
-      sql += ' WHERE username ILIKE $1';
-      params.push(`%${search}%`);
-      sql += ' ORDER BY username ASC LIMIT $2';
-      params.push(limit);
-    } else {
-      sql += ' ORDER BY created_at DESC LIMIT $1';
-      params.push(limit);
-    }
-
-    const { rows } = await query<User>(sql, params);
+    const { rows } = await query<User>(
+      'SELECT userId, quote FROM users ORDER BY userId LIMIT $1',
+      [limit]
+    );
 
     return res.json({ users: rows, count: rows.length });
   } catch (err) {
@@ -47,17 +32,17 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * GET /users/:id
- * Get a specific user by ID
+ * Get a specific user by UUID
  */
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = parseInt(req.params.id, 10);
-    if (!userId || isNaN(userId)) {
+    const userId = req.params.id;
+    if (!userId) {
       return res.status(400).json({ error: 'Valid user ID is required' });
     }
 
     const { rows } = await query<User>(
-      'SELECT "userID", username, created_at FROM "USER" WHERE "userID" = $1',
+      'SELECT userId, quote FROM users WHERE userId = $1',
       [userId]
     );
 
@@ -74,34 +59,20 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 /**
  * POST /users
  * Create a new user
- * Body: { username: string } or { userID: number, username: string }
+ * Body: { userId: string, quote?: string }
  */
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username, userID } = req.body || {};
+    const { userId, quote } = req.body || {};
 
-    if (!username || typeof username !== 'string' || username.trim().length === 0) {
-      return res.status(400).json({ error: 'Username is required and must be a non-empty string' });
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
     }
 
-    let sql: string;
-    let params: any[];
-    
-    if (userID) {
-      // Create user with specific ID
-      const id = parseInt(userID, 10);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'userID must be a valid integer' });
-      }
-      sql = 'INSERT INTO "USER" ("userID", username) VALUES ($1, $2) RETURNING "userID", username, created_at';
-      params = [id, username.trim()];
-    } else {
-      // Auto-generate ID
-      sql = 'INSERT INTO "USER" (username) VALUES ($1) RETURNING "userID", username, created_at';
-      params = [username.trim()];
-    }
-
-    const { rows } = await query<User>(sql, params);
+    const { rows } = await query<User>(
+      'INSERT INTO users (userId, quote) VALUES ($1, $2) RETURNING userId, quote',
+      [userId, quote || null]
+    );
 
     return res.status(201).json({ 
       message: 'User created successfully',
@@ -109,7 +80,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     });
   } catch (err: any) {
     if (err.code === '23505') { // Unique constraint violation
-      return res.status(400).json({ error: 'Username or userID already exists' });
+      return res.status(400).json({ error: 'User already exists' });
     }
     return next(err);
   }
@@ -117,25 +88,21 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * PUT /users/:id
- * Update a user's username
- * Body: { username: string }
+ * Update a user's quote
+ * Body: { quote: string }
  */
 router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = parseInt(req.params.id, 10);
-    const { username } = req.body || {};
+    const userId = req.params.id;
+    const { quote } = req.body || {};
 
-    if (!userId || isNaN(userId)) {
+    if (!userId) {
       return res.status(400).json({ error: 'Valid user ID is required' });
     }
 
-    if (!username || typeof username !== 'string' || username.trim().length === 0) {
-      return res.status(400).json({ error: 'Username is required and must be a non-empty string' });
-    }
-
     const result = await query<User>(
-      'UPDATE "USER" SET username = $1 WHERE "userID" = $2 RETURNING "userID", username, created_at',
-      [username.trim(), userId]
+      'UPDATE users SET quote = $1 WHERE userId = $2 RETURNING userId, quote',
+      [quote || null, userId]
     );
 
     if (result.rowCount === 0) {
@@ -146,10 +113,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       message: 'User updated successfully',
       user: result.rows[0]
     });
-  } catch (err: any) {
-    if (err.code === '23505') {
-      return res.status(400).json({ error: 'Username already exists' });
-    }
+  } catch (err) {
     return next(err);
   }
 });
@@ -160,13 +124,13 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
  */
 router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = parseInt(req.params.id, 10);
-    if (!userId || isNaN(userId)) {
+    const userId = req.params.id;
+    if (!userId) {
       return res.status(400).json({ error: 'Valid user ID is required' });
     }
 
-    const result = await query<UserIdRow>(
-      'DELETE FROM "USER" WHERE "userID" = $1 RETURNING "userID", username',
+    const result = await query<{ userId: string }>(
+      'DELETE FROM users WHERE userId = $1 RETURNING userId',
       [userId]
     );
 
@@ -175,8 +139,8 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
     }
 
     return res.json({ 
-      message: 'User deleted successfully (including all friendships and requests)',
-      user: result.rows[0]
+      message: 'User deleted successfully (including all relationships and requests)',
+      userId: result.rows[0].userId
     });
   } catch (err) {
     return next(err);

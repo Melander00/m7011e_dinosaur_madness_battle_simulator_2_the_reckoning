@@ -3,13 +3,15 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { healthCheck } from './db';
+import { connectRabbitMQ, closeRabbitMQ } from './messaging/rabbitmq';
+import { matchmakingService } from './services/matchmaking-service';
 
-import usersRouter from './routes/users';
+import queueRouter from './routes/queue';
 
 const app = express();
 
 // Configuration
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3004;
 
 // Middleware
 app.use(cors());
@@ -21,27 +23,26 @@ app.get('/healthz', async (req: Request, res: Response) => {
   const dbHealth = await healthCheck();
   res.json({ 
     status: dbHealth.status === 'healthy' ? 'ok' : 'degraded', 
-    service: 'user-service',
+    service: 'matchmaking-service',
     database: dbHealth,
     timestamp: new Date().toISOString() 
   });
 });
 
 // API Routes
-app.use('/users', usersRouter);
+app.use('/queue', queueRouter);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({
-    service: 'user-service',
+    service: 'matchmaking-service',
     version: '1.0.0',
     endpoints: {
-      users: {
-        'GET /users': 'List all users (query: ?search=username&limit=50)',
-        'GET /users/:id': 'Get specific user by UUID',
-        'POST /users': 'Create new user',
-        'PUT /users/:id': 'Update user',
-        'DELETE /users/:id': 'Delete user'
+      queue: {
+        'POST /queue/join': 'Join matchmaking queue (requires auth token)',
+        'POST /queue/leave': 'Leave matchmaking queue',
+        'GET /queue/status?userId=<id>': 'Get queue status for user',
+        'GET /queue/stats': 'Get overall queue statistics'
       }
     }
   });
@@ -61,11 +62,17 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Start server (schema is managed by Flyway migrations)
+// Initialize RabbitMQ and start server (schema is managed by Flyway migrations)
 async function start(): Promise<void> {
   try {
+    // Connect to RabbitMQ
+    await connectRabbitMQ();
+
+    // Start matchmaking background service
+    matchmakingService.startMatchmaking();
+
     app.listen(PORT, () => {
-      console.log(`user-service listening on http://localhost:${PORT}`);
+      console.log(`matchmaking-service listening on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (err) {
@@ -73,5 +80,20 @@ async function start(): Promise<void> {
     process.exit(1);
   }
 }
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  matchmakingService.stopMatchmaking();
+  await closeRabbitMQ();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  matchmakingService.stopMatchmaking();
+  await closeRabbitMQ();
+  process.exit(0);
+});
 
 start();
