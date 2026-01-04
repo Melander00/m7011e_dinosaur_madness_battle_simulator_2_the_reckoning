@@ -1,20 +1,21 @@
-
-# -- Build Stage --
-FROM node:22-alpine AS builder
+# ---------- Build stage ----------
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json ./
+# Install dependencies (deterministic)
+COPY package.json package-lock.json ./
+RUN npm ci
 
-RUN npm install && npm cache clean --force
-
+# Build frontend
 COPY . .
-
 RUN npm run build
 
-# -- Deploy Stage --
-FROM nginx:1.29.3
 
+# ---------- Runtime stage ----------
+FROM nginx:alpine
+
+# SPA routing support for React Router
 RUN printf '%s\n' \
   'server {' \
   '  listen 80;' \
@@ -27,4 +28,8 @@ RUN printf '%s\n' \
   '}' \
   > /etc/nginx/conf.d/default.conf
 
+# Copy built assets
 COPY --from=builder /app/dist/ /usr/share/nginx/html/
+
+EXPOSE 80
+
