@@ -4,17 +4,27 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json .
+COPY package.json ./
 
-RUN npm ci && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 COPY . .
 
-RUN npm run build && npm prune --production
+RUN npm run build
 
 # -- Deploy Stage --
 FROM nginx:1.29.3
 
-COPY --from=builder /app/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+RUN printf '%s\n' \
+  'server {' \
+  '  listen 80;' \
+  '  server_name _;' \
+  '  root /usr/share/nginx/html;' \
+  '  index index.html;' \
+  '  location / {' \
+  '    try_files $uri $uri/ /index.html;' \
+  '  }' \
+  '}' \
+  > /etc/nginx/conf.d/default.conf
 
-COPY --from=builder /app/build/client /usr/share/nginx/html/
+COPY --from=builder /app/dist/ /usr/share/nginx/html/
