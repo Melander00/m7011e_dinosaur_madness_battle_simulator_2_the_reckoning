@@ -1,4 +1,5 @@
 import Leaderboard from "./leaderboard";
+import Matchmaking from "./matchmaking";
 
 export default function IndexPage() {
   return (
@@ -9,9 +10,15 @@ export default function IndexPage() {
         <h2>Leaderboard</h2>
         <Leaderboard />
       </section>
+
+      <section>
+        <h2>Matchmaking</h2>
+        <Matchmaking />
+      </section>
     </div>
   );
 }
+
 
 
 
