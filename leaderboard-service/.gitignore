@@ -2,3 +2,6 @@ node_modules
 .env
 dist
 generated
+# Local testing files (not for git)
+LOCAL-TESTING-GUIDE.md
+test-leaderboard.sh

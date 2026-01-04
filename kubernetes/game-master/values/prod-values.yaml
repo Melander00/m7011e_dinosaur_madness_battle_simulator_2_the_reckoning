@@ -1,0 +1,46 @@
+# Development Environment Configuration
+
+app:
+  name: game-master
+  replicas: 1
+  port: 8080
+
+# Development domain - change to your assigned domain
+domain: game-master.ltu-m7011e-1.se
+
+# Email for Let's Encrypt certificates
+email: sammel-2@student.ltu.se
+
+# Environment identifier
+environment: Production
+
+# Container image
+image:
+  repository: ghcr.io/melander00/m7011e_game-master
+  tag: "03b5af6"
+
+server:
+  image: ghcr.io/melander00/m7011e_game-server
+  serverTag: "bd2604a"
+  domain: game.ltu-m7011e-1.se
+  namespace: game-servers
+  subpath: "/{ID}"
+  clusterIssuer: letsencrypt-prod
+
+rabbit:
+  username: "admin"
+  password: "admin123"
+  host: rabbitmq-service-api.rabbitmq.svc.cluster.local
+  port: "5672"
+
+redis:
+  username: 
+  password: 
+  host: redis-service.prod.svc.cluster.local
+  port: "6379"
+  db: "1"
+
+# Ingress configuration
+ingress:
+  # Use staging for testing to avoid rate limits
+  certIssuer: letsencrypt-prod

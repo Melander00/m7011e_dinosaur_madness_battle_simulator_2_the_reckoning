@@ -1,0 +1,20 @@
+replicaCount: 1
+
+image:
+  repository: redis
+  tag: "8"
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 6379
+
+resources: {}
+
+app:
+  name: redis
+
+persistence:
+  enabled: true
+  storageClass: "local-path"
+  accessMode: ReadWriteOnce
+  size: 1Gi

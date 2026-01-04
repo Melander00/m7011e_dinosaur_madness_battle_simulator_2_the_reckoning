@@ -6,10 +6,10 @@ app:
   port: 80
 
 # Development domain - change to your assigned domain
-domain: ltu-m7011e-1.se
+domain: dev.ltu-m7011e-1.se
 
 # Email for Let's Encrypt certificates
-email: johan.kristiansson@ltu.se
+email: sammel-2@student.ltu.se
 
 # Environment identifier
 environment: Development
@@ -17,7 +17,7 @@ environment: Development
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_frontend
-  tag: "91e8b40"
+  tag: "05332e2"
 
 # Ingress configuration
 ingress:

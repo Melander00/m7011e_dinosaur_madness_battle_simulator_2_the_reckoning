@@ -1,21 +1,24 @@
 {
-  "name": "shared",
+  "name": "@dino-battle/shared",
   "version": "1.0.0",
-  "description": "Shared modules for Dinosaur Madness microservices",
-  "main": "dist/db/index.js",
-  "types": "dist/db/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch"
-  },
+  "description": "Shared middleware and utilities for all backend services",
+  "main": "index.ts",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "amqplib": "^0.10.9",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.2.0",
     "pg": "^8.12.0"
   },
   "devDependencies": {
-    "@types/amqplib": "^0.10.8",
-    "@types/node": "^20.10.6",
-    "@types/pg": "^8.10.9",
-    "typescript": "^5.3.3"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.16.0"
   }
 }

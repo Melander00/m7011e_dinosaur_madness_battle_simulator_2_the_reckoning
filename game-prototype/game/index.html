@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dinosaur Game</title>
+</head>
+
+<body>
+    <div id="loading">Loading...</div>
+    <div id="game" class="hidden">
+        <h1>Socket.IO Fighting Game</h1>
+        <div id="ui">
+            <div>Green (Player 0): <span id="hp0">100</span> HP</div>
+            <div>Red (Player 1): <span id="hp1">100</span> HP</div>
+            <div style="margin-top: 10px; font-size: 16px;">Press SPACE to attack!</div>
+            <div id="playerNum" style="margin-top: 10px; font-size: 20px; color: #ff0;">Waiting for connection...</div>
+        </div>
+        <canvas id="canvas" width="800" height="300"></canvas>
+        <div id="gameOver"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

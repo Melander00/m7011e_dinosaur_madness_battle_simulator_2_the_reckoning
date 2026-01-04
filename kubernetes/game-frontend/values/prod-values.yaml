@@ -1,0 +1,25 @@
+# Development Environment Configuration
+
+app:
+  name: game-frontend
+  replicas: 1
+  port: 80
+
+# Development domain - change to your assigned domain
+domain: ltu-m7011e-1.se
+
+# Email for Let's Encrypt certificates
+email: sammel-2@student.ltu.se
+
+# Environment identifier
+environment: Production
+
+# Container image
+image:
+  repository: ghcr.io/melander00/m7011e_game-frontend
+  tag: "3c1f1ba"
+
+# Ingress configuration
+ingress:
+  # Use staging for testing to avoid rate limits
+  certIssuer: letsencrypt-prod

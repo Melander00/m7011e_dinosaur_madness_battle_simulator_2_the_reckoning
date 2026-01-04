@@ -8,6 +8,10 @@ on:
       - 'db/**'        # Only trigger when db changes
       - '!kubernetes/**'               # Don't trigger when only k8s files change
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-update-dev:
     name: Deploy DB migrations to Dev
@@ -51,6 +55,11 @@ jobs:
 
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
+      - name: Update local git repo
+        run: |
+          git pull
+
+
       # 5. Update Helm values for dev
       - name: Update dev environment values
         run: |
@@ -61,6 +70,7 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
+          git pull
           git add kubernetes/db-migration/values/dev-values.yaml
           git commit -m "Update db migration image to ${IMAGE_TAG}"
           git push
