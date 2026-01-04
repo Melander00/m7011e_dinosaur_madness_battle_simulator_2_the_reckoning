@@ -1,12 +1,11 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const { initializeSchema } = require('../../shared/db');
+import 'dotenv/config';
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import { initializeSchema } from '../../shared/db/index';
 
-const usersRouter = require('../../user-service/routes/users');
-const friendshipsRouter = require('./routes/friendships');
-const requestsRouter = require('./routes/requests');
+import friendshipsRouter from './routes/friendships';
+import requestsRouter from './routes/requests';
 
 const app = express();
 
@@ -19,7 +18,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Health check
-app.get('/healthz', (req, res) => {
+app.get('/healthz', (req: Request, res: Response) => {
   res.json({ 
     status: 'ok', 
     service: 'friend-service',
@@ -28,23 +27,15 @@ app.get('/healthz', (req, res) => {
 });
 
 // API Routes
-app.use('/users', usersRouter);
 app.use('/friendships', friendshipsRouter);
 app.use('/requests', requestsRouter);
 
 // Root endpoint
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({
     service: 'friend-service',
     version: '1.0.0',
     endpoints: {
-      users: {
-        'GET /users': 'List all users (query: ?search=username&limit=50)',
-        'GET /users/:id': 'Get specific user',
-        'POST /users': 'Create new user',
-        'PUT /users/:id': 'Update user',
-        'DELETE /users/:id': 'Delete user'
-      },
       friendships: {
         'GET /friendships/:userId': 'Get all friends for a user',
         'GET /friendships/:userId/count': 'Get friend count',
@@ -64,13 +55,12 @@ app.get('/', (req, res) => {
 });
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
 // Error handler
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled error:', err);
   res.status(err.status || 500).json({ 
     error: err.message || 'Internal Server Error',
@@ -79,7 +69,7 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize database and start server
-async function start() {
+async function start(): Promise<void> {
   try {
     await initializeSchema('friend');
     app.listen(PORT, () => {
