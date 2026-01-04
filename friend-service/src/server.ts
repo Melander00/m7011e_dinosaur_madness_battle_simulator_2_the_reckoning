@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import { initializeSchema } from '../../shared/db/index';
+import { healthCheck } from './db';
 
 import friendshipsRouter from './routes/friendships';
 import requestsRouter from './routes/requests';
@@ -18,10 +18,12 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Health check
-app.get('/healthz', (req: Request, res: Response) => {
+app.get('/healthz', async (req: Request, res: Response) => {
+  const dbHealth = await healthCheck();
   res.json({ 
-    status: 'ok', 
+    status: dbHealth.status === 'healthy' ? 'ok' : 'degraded', 
     service: 'friend-service',
+    database: dbHealth,
     timestamp: new Date().toISOString() 
   });
 });
@@ -39,16 +41,16 @@ app.get('/', (req: Request, res: Response) => {
       friendships: {
         'GET /friendships/:userId': 'Get all friends for a user',
         'GET /friendships/:userId/count': 'Get friend count',
-        'POST /friendships': 'Create friendship (body: {userID1, userID2})',
-        'DELETE /friendships': 'Delete friendship (body: {userID1, userID2})'
+        'POST /friendships': 'Create friendship (body: {userId1, userId2})',
+        'DELETE /friendships': 'Delete friendship (body: {userId1, userId2})'
       },
       requests: {
         'GET /requests/incoming/:userId': 'Get incoming friend requests',
         'GET /requests/outgoing/:userId': 'Get outgoing friend requests',
-        'POST /requests': 'Send friend request (body: {fromUserID, toUserID})',
-        'PUT /requests/:id/accept': 'Accept friend request',
-        'PUT /requests/:id/reject': 'Reject friend request',
-        'DELETE /requests/:id': 'Cancel friend request (body: {fromUserID})'
+        'POST /requests': 'Send friend request (body: {fromUserId, toUserId})',
+        'PUT /requests/accept': 'Accept friend request (body: {fromUserId, toUserId})',
+        'PUT /requests/reject': 'Reject friend request (body: {fromUserId, toUserId})',
+        'DELETE /requests': 'Cancel friend request (body: {fromUserId, toUserId})'
       }
     }
   });
@@ -68,10 +70,9 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Initialize database and start server
+// Start server (schema is managed by Flyway migrations)
 async function start(): Promise<void> {
   try {
-    await initializeSchema('friend');
     app.listen(PORT, () => {
       console.log(`friend-service listening on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
