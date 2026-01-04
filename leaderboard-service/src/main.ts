@@ -5,6 +5,8 @@ import cors from "cors";
 import morgan from "morgan";
 import { query } from "./db";
 import { requireAuth } from "./auth/keycloak";
+import { getMetrics } from "./monitoring/prometheus";
+
 
 import leaderboardRouter from "./routes/leaderboard";
 
@@ -75,6 +77,13 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEV_ENDPOINTS =
     
     console.log('[DEV] /dev/seed-rank endpoint enabled for manual testing');
 }
+
+app.get("/metrics", async (req, res) => {
+  const data = await getMetrics();
+  res.set("Content-Type", data.contentType);
+  res.end(data.metrics);
+});
+
 
 // Routes
 app.use('/leaderboard', leaderboardRouter);

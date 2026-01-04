@@ -1,11 +1,7 @@
+// tsconfig.dev.json
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
-    
-    "preserveConstEnums": true,
-    "noImplicitAny": true,
+    "sourceMap": true
   }
 }

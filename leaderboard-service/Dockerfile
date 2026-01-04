@@ -1,33 +1,33 @@
-# --- Build Stage ---
+# ---------- Build stage ----------
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files first for better caching
+# Install dependencies (with dev deps)
 COPY package*.json ./
-RUN npm ci && npm cache clean --force
+RUN npm ci
 
-# Copy source code
+# Copy source and build
 COPY . .
+RUN npm run build
 
-# Build and remove dev dependencies
-RUN npm run build && npm prune --production
-
-# --- Run Stage ---
-FROM node:22-alpine AS app
+# ---------- Runtime stage ----------
+FROM node:22-alpine
 
 WORKDIR /app
 
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S user -u 1001
+# Create non-root user
+RUN addgroup -S app && adduser -S app -G app
 
-COPY --from=builder --chown=user:nodejs /app/package.json /app/package.json
-COPY --from=builder --chown=user:nodejs /app/dist /app/dist
-COPY --from=builder --chown=user:nodejs /app/node_modules /app/node_modules
-COPY --from=builder --chown=user:nodejs /app/entrypoint.sh /app/entrypoint.sh
+# Copy package.json and install prod deps only
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-RUN chmod +x /app/entrypoint.sh
+# Copy compiled output
+COPY --from=builder /app/dist ./dist
 
-USER user
+USER app
 
-ENTRYPOINT [ "/app/entrypoint.sh" ]
+EXPOSE 3005
+
+CMD ["node", "dist/leaderboard-service/src/main.js"]
