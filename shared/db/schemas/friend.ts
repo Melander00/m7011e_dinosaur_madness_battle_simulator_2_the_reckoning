@@ -1,20 +1,11 @@
 /**
  * Friend Service Database Schema
- * Tables: USER, USER_RELATIONSHIP, RelationshipRequests
+ * Tables: USER_RELATIONSHIP, RelationshipRequests
  */
 
-async function initialize(query) {
-  // Create USER table (shared by multiple services)
-  await query(`
-    CREATE TABLE IF NOT EXISTS "USER" (
-      "userID" SERIAL PRIMARY KEY,
-      username TEXT UNIQUE,
-      email TEXT UNIQUE,
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW()
-    );
-  `);
+type QueryFunction = <T = any>(text: string, params?: any[]) => Promise<any>;
 
+export async function initialize(query: QueryFunction): Promise<void> {
   // Create USER_RELATIONSHIP table
   await query(`
     CREATE TABLE IF NOT EXISTS "USER_RELATIONSHIP" (
@@ -60,11 +51,4 @@ async function initialize(query) {
     CREATE INDEX IF NOT EXISTS idx_relationship_requests_from 
     ON "RelationshipRequests"("fromUserID");
   `);
-
-  await query(`
-    CREATE INDEX IF NOT EXISTS idx_user_username 
-    ON "USER"(username);
-  `);
 }
-
-module.exports = { initialize };

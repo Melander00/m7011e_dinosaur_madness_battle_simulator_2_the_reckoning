@@ -1,14 +1,28 @@
-const express = require('express');
-const { query } = require('../../../shared/db');
+import { Router, Request, Response, NextFunction } from 'express';
+import { query } from '../../../shared/db';
 
-const router = express.Router();
+const router = Router();
+
+interface User {
+  userID: number;
+  username: string;
+  created_at: Date;
+}
+
+interface UserIdRow {
+  userID: number;
+}
+
+interface CountRow {
+  count: string;
+}
 
 /**
  * GET /friendships/:userId
  * Get all friends for a specific user
  * Returns user details of all friends (searches both userID1 and userID2)
  */
-router.get('/:userId', async (req, res, next) => {
+router.get('/:userId', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = parseInt(req.params.userId, 10);
     if (!userId || isNaN(userId)) {
@@ -16,8 +30,7 @@ router.get('/:userId', async (req, res, next) => {
     }
 
     // Find all friendships where userId matches either userID1 or userID2
-    // might be to inafficient according to ai
-    const { rows } = await query(
+    const { rows } = await query<User>(
       `SELECT 
         u."userID",
         u.username,
@@ -46,7 +59,7 @@ router.get('/:userId', async (req, res, next) => {
  * Body: { userID1: number, userID2: number }
  * Note: Automatically orders IDs so userID1 < userID2
  */
-router.post('/', async (req, res, next) => {
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     let { userID1, userID2 } = req.body || {};
     
@@ -67,7 +80,7 @@ router.post('/', async (req, res, next) => {
     }
 
     // Check if both users exist
-    const { rows: users } = await query(
+    const { rows: users } = await query<UserIdRow>(
       `SELECT "userID" FROM "USER" WHERE "userID" IN ($1, $2)`,
       [userID1, userID2]
     );
@@ -98,7 +111,7 @@ router.post('/', async (req, res, next) => {
  * Remove a friendship between two users
  * Body: { userID1: number, userID2: number }
  */
-router.delete('/', async (req, res, next) => {
+router.delete('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     let { userID1, userID2 } = req.body || {};
     
@@ -137,14 +150,14 @@ router.delete('/', async (req, res, next) => {
  * GET /friendships/:userId/count
  * Get friend count for a user
  */
-router.get('/:userId/count', async (req, res, next) => {
+router.get('/:userId/count', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = parseInt(req.params.userId, 10);
     if (!userId || isNaN(userId)) {
       return res.status(400).json({ error: 'Valid userId is required' });
     }
 
-    const { rows } = await query(
+    const { rows } = await query<CountRow>(
       `SELECT COUNT(*) as count 
        FROM "USER_RELATIONSHIP" 
        WHERE "userID1" = $1 OR "userID2" = $1`,
@@ -157,4 +170,4 @@ router.get('/:userId/count', async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

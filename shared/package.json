@@ -2,8 +2,20 @@
   "name": "shared",
   "version": "1.0.0",
   "description": "Shared modules for Dinosaur Madness microservices",
-  "main": "index.js",
+  "main": "dist/db/index.js",
+  "types": "dist/db/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
   "dependencies": {
+    "amqplib": "^0.10.9",
     "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.8",
+    "@types/node": "^20.10.6",
+    "@types/pg": "^8.10.9",
+    "typescript": "^5.3.3"
   }
 }
