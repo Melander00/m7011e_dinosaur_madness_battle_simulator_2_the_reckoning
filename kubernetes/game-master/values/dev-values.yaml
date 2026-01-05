@@ -30,13 +30,13 @@ server:
 rabbit:
   username: "admin"
   password: "admin123"
-  host: rabbitmq-service-api.rabbitmq.svc.cluster.local
+  host: rabbitmq
   port: "5672"
 
 redis:
   username: 
   password: 
-  host: redis-service.dev.svc.cluster.local
+  host: redis-service
   port: "6379"
   db: "1"
 
