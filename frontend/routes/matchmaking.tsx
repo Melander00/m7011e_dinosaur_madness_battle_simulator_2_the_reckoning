@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "~/keycloak/useAuth";
-import { getActiveMatch } from "~/api/gameMasterClient";
 
 import type { Friend } from "~/api/friends";
 import { getFriends } from "~/api/friends";
 import { getFriendsMock } from "~/api/friends.mock";
+import { getMatchmakingStatus, joinMatchmakingQueue, leaveMatchmakingQueue } from "~/api/matchmaking";
 
 // 🔁 Toggle when backend is live
 const USE_MOCKS = true;
@@ -30,14 +30,23 @@ export default function Matchmaking() {
     let cancelled = false;
 
     const poll = async () => {
-      try {
-        const match = await getActiveMatch(token);
-        if (cancelled) return;
+        if(cancelled) return;
+        const match = await getMatchmakingStatus(token);
+        if(match.inQueue) {
+            // We are still in queue so keep looking
+            setTimeout(poll, 1000)
+        } else {
+            window.location.pathname = "/game/"
+        }
 
-        window.location.href = `https://${match.domain}${match.subpath}`;
-      } catch {
-        if (!cancelled) setTimeout(poll, 2000);
-      }
+    //   try {
+    //     if (match.inQueue) return;
+    //     if (cancelled) return;
+
+    //     window.location.href = `https://${match.domain}${match.subpath}`;
+    //   } catch {
+    //     if (!cancelled) setTimeout(poll, 2000);
+    //   }
     };
 
     poll();
@@ -46,10 +55,20 @@ export default function Matchmaking() {
     };
   }, [state, token]);
 
-  function startRanked() {
+  async function startRanked() {
     setError(null);
     setMode("ranked");
     setState("searching");
+    if(token)
+        await joinMatchmakingQueue(token)
+  }
+
+  async function stopRanked() {
+    setError(null)
+    setMode(null)
+    setState("idle")
+    if(token)
+        await leaveMatchmakingQueue(token)
   }
 
   async function startFriendly() {
@@ -136,6 +155,7 @@ export default function Matchmaking() {
             ? "Looking for ranked match…"
             : "Waiting for friend to accept…"}
         </p>
+        <button onClick={stopRanked}>Stop Matchmaking</button>
       </div>
     );
   }
