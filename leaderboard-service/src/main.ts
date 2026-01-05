@@ -6,6 +6,8 @@ import morgan from "morgan";
 import { query } from "./db";
 import { requireAuth } from "./auth/keycloak";
 import { getMetrics } from "./monitoring/prometheus";
+import { startLeaderboardMatchResultConsumer } from "./rabbitmq-consumer";
+
 
 
 import leaderboardRouter from "./routes/leaderboard";
@@ -125,8 +127,16 @@ export { app };
 
 // Start server only if not imported as module
 if (require.main === module) {
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
         console.log(`leaderboard-service listening on http://localhost:${PORT}`);
         console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+        try {
+            await startLeaderboardMatchResultConsumer();
+            console.log("[Leaderboard Service] RabbitMQ consumer started");
+        } catch (err) {
+            console.error("[Leaderboard Service] Failed to start RabbitMQ consumer", err);
+            process.exit(1); // Fail fast if background worker cannot start
+        }
     });
 }
