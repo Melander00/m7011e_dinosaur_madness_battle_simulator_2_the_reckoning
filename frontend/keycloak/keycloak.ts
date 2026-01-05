@@ -1,9 +1,10 @@
-import Keycloak from 'keycloak-js';
+import Keycloak from "keycloak-js";
 
 const keycloak = new Keycloak({
-    url: import.meta.env.VITE_KEYCLOAK_URL,
-    realm: import.meta.env.VITE_KEYCLOAK_REALM,
-    clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID
+  url: "https://keycloak.ltu-m7011e-1.se",
+  realm: "myapp",
+  clientId: "frontend",
 });
 
 export default keycloak;
+
