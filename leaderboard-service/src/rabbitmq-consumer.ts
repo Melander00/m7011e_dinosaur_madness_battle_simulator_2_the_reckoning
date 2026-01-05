@@ -11,11 +11,12 @@ const RABBITMQ_HOST = process.env.RABBITMQ_URL || "amqp://admin:admin123@localho
 const LEADERBOARD_MATCH_RESULTS_QUEUE = "leaderboard-match-results";
 const MATCH_EVENTS_EXCHANGE = "match-events";
 
-interface MatchResultMessage {
+export interface MatchResultMessage {
     winnerId: string;
     loserId: string;
-    matchId?: string;
-    timestamp?: string;
+    matchId: string;
+    timestamp: number;
+    ranked: boolean;
 }
 
 /**
@@ -57,7 +58,13 @@ export async function startLeaderboardMatchResultConsumer() {
         }, async (msg: any) => {
             try {
                 const body = msg.body as MatchResultMessage;
-                console.log(`[Leaderboard Service] Processing match result: Winner=${body.winnerId}, Loser=${body.loserId}`);
+                console.log(`[Leaderboard Service] Processing match result: Winner=${body.winnerId}, Loser=${body.loserId}, Ranked=${body.ranked}`);
+                
+                // Only process ranked matches
+                if (!body.ranked) {
+                    console.log(`[Leaderboard Service] Skipping unranked match: ${body.matchId}`);
+                    return; // Acknowledge but skip processing
+                }
                 
                 await processLeaderboardMatchResult(body);
                 
@@ -95,16 +102,27 @@ export async function startLeaderboardMatchResultConsumer() {
 
 /**
  * Process a match result message and update ELO ratings in leaderboard
+ * EXPORTED for testing
  */
-async function processLeaderboardMatchResult(message: MatchResultMessage): Promise<void> {
-    const { winnerId, loserId } = message;
+export async function processLeaderboardMatchResult(message: MatchResultMessage): Promise<void> {
+    const { winnerId, loserId, matchId, timestamp, ranked } = message;
 
     if (!winnerId || !loserId) {
         throw new Error('Invalid match result: winnerId and loserId are required');
     }
 
+    if (!matchId) {
+        throw new Error('Invalid match result: matchId is required');
+    }
+
     if (winnerId === loserId) {
         throw new Error('Invalid match result: Winner and loser cannot be the same player');
+    }
+
+    // Double-check that this is a ranked match (defensive check)
+    if (!ranked) {
+        console.log(`[Leaderboard Service] Skipping unranked match ${matchId}`);
+        return;
     }
 
     // Get current ratings from DB or use starting ELO for new players
