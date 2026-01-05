@@ -30,7 +30,7 @@ server:
 rabbit:
   username: "admin"
   password: "admin123"
-  host: rabbitmq
+  host: rabbitmq-service-api
   port: "5672"
 
 redis:
