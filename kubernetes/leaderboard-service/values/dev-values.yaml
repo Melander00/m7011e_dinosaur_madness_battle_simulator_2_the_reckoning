@@ -17,7 +17,7 @@ environment: Development
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_leaderboard-service
-  tag: "360abbb"
+  tag: "be8a697"
 
 # Ingress configuration
 ingress:
