@@ -33,5 +33,5 @@ spec:
               secretKeyRef:
                 name: postgres-secret
                 key: password
-          - name: RABBITMQ_HOST
+          - name: RABBITMQ_URL
             value: "ampq://{{ .Values.rabbit.username }}:{{ .Values.rabbit.password }}@{{ .Values.rabbit.host }}:{{ .Values.rabbit.port }}"
