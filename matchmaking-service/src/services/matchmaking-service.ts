@@ -173,12 +173,12 @@ export class MatchmakingService {
 
 export async function getAmountInQueue() {
     try {
-        const result = await query<{ count: number }>(
+        const result = await query<{ count: string }>(
             `SELECT COUNT(*) FROM matchmaking_queue`
         );
 
         if(result.rows.length === 0) return 0;
-        return result.rows[0].count
+        return parseInt(result.rows[0].count || "0") || 0
         
     } catch {
         return 0;
