@@ -1,7 +1,7 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { matchmakingService } from '../services/matchmaking-service';
-import { getUserElo } from '../services/leaderboard-client';
+import { NextFunction, Request, Response, Router } from 'express';
 import { requireAuth } from "../auth/keycloak";
+import { getUserElo } from '../services/leaderboard-client';
+import { matchmakingService } from '../services/matchmaking-service';
 
 const router = Router();
 
@@ -40,6 +40,11 @@ router.post('/join', requireAuth, async (req: Request, res: Response, next: Next
     return next(err);
   }
 });
+
+router.get("/me", requireAuth, async (req, res, next) => {
+    const elo = await getUserElo(req.userId!, "")
+    res.json({elo})
+})
 
 /**
  * POST /queue/leave
