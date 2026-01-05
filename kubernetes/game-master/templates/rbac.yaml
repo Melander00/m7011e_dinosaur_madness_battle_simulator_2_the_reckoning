@@ -2,7 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   namespace: game-servers
-  name: pod-creator
+  name: "pod-creator-{{ .Values.env }}"
 rules:
   # Pods & Services
   - apiGroups: [""]
@@ -16,7 +16,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: pod-creator-binding
+  name: "pod-creator-binding-{{ .Values.env }}"
   namespace: game-servers
 subjects:
 - kind: ServiceAccount
@@ -24,5 +24,5 @@ subjects:
   namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
-  name: pod-creator
+  name: "pod-creator-{{ .Values.env }}"
   apiGroup: rbac.authorization.k8s.io

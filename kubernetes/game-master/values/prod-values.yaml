@@ -12,7 +12,7 @@ domain: game-master.ltu-m7011e-1.se
 email: sammel-2@student.ltu.se
 
 # Environment identifier
-environment: Production
+env: production
 
 # Container image
 image:
