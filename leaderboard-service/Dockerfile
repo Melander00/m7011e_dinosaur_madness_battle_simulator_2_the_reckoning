@@ -30,4 +30,4 @@ USER app
 
 EXPOSE 3005
 
-CMD ["node", "dist/leaderboard-service/src/main.js"]
+CMD ["npm", "run", "start]
