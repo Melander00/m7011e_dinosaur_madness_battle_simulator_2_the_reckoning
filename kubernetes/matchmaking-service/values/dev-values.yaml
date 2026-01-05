@@ -8,7 +8,7 @@ app:
 
 # Development domain - change to your assigned domain
 tlsSecret: root-tls
-domain: ltu-m7011e-1.se
+domain: dev.ltu-m7011e-1.se
 path: /api/matchmaking
 
 # Email for Let's Encrypt certificates
