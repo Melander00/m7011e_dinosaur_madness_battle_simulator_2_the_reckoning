@@ -20,16 +20,18 @@ spec:
         ports:
         - containerPort: 3005
         env:
-          - name: PG_HOST
+          - name: PGHOST
             value: postgres
-          - name: PG_DATABASE
+          - name: PGDATABASE
             value: postgres
-          - name: PG_PORT
+          - name: PGPORT
             value: "5432"
-          - name: PG_USER
+          - name: PGUSER
             value: admin
-          - name: PG_PASSWORD
+          - name: PGPASSWORD
             valueFrom:
               secretKeyRef:
                 name: postgres-secret
                 key: password
+          - name: RABBITMQ_HOST
+            value: "ampq://{{ .Values.rabbit.username }}:{{ .Values.rabbit.password }}@{{ .Values.rabbit.host }}:{{ .Values.rabbit.port }}"
