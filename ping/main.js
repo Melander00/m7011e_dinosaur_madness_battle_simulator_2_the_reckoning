@@ -29,7 +29,7 @@ app.get("/metrics", async (req, res) => {
     res.end(await register.metrics())
 })
 
-app.get("/api/ping", (req, res) => {
+app.get("/", (req, res) => {
 
     const start = Date.now()
 

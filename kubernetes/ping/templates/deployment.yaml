@@ -17,6 +17,7 @@ spec:
       containers:
       - name: ping
         image: docker.io/melander00/ping:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3100
         env:
