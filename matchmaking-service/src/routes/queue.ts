@@ -1,32 +1,26 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { matchmakingService } from '../services/matchmaking-service';
 import { getUserElo } from '../services/leaderboard-client';
+import { requireAuth } from "../auth/keycloak";
 
 const router = Router();
-
-interface AuthenticatedRequest extends Request {
-  userId?: string;
-}
 
 /**
  * POST /queue/join
  * Join the matchmaking queue
- * Requires authentication token in Authorization header
+ * Requires valid JWT token
  */
-router.post('/join', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.post('/join', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const userId = req.userId; // From Keycloak JWT
     const authToken = req.headers.authorization;
     
-    if (!authToken) {
-      return res.status(401).json({ error: 'Authorization token required' });
+    if (!userId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
     }
 
-    // Extract userId from your auth system (e.g., Keycloak JWT)
-    // For now, expecting userId in request body or from decoded token
-    const userId = req.body.userId || req.userId;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+    if (!authToken) {
+      return res.status(500).json({ error: 'Authorization token missing' });
     }
 
     // Fetch user's elo from leaderboard service
@@ -50,13 +44,14 @@ router.post('/join', async (req: AuthenticatedRequest, res: Response, next: Next
 /**
  * POST /queue/leave
  * Leave the matchmaking queue
+ * Requires valid JWT token
  */
-router.post('/leave', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.post('/leave', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = req.body.userId || req.userId;
+    const userId = req.userId; // From Keycloak JWT
     
     if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+      return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     await matchmakingService.removeFromQueue(userId);
@@ -71,15 +66,15 @@ router.post('/leave', async (req: AuthenticatedRequest, res: Response, next: Nex
 });
 
 /**
- * GET /queue/status
- * Get current queue status for the user
+ * GET /queue/statusauthenticated user
+ * Requires valid JWT token
  */
-router.get('/status', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.get('/status', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = req.query.userId as string || req.userId;
+    const userId = req.userId; // From Keycloak JWT
     
     if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+      return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     const position = await matchmakingService.getQueuePosition(userId);
@@ -103,9 +98,9 @@ router.get('/status', async (req: AuthenticatedRequest, res: Response, next: Nex
 
 /**
  * GET /queue/stats
- * Get overall queue statistics
+ * Requires valid JWT token
  */
-router.get('/stats', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/stats', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await matchmakingService.getQueueStats();
 

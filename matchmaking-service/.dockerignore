@@ -5,8 +5,5 @@ npm-debug.log
 .env.local
 .git
 .gitignore
-*.md
-.DS_Store
-coverage
-.nyc_output
-*.log
+README.md
+.dockerignore

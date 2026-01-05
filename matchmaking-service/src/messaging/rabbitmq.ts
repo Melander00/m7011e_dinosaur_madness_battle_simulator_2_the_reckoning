@@ -1,31 +1,54 @@
-import * as amqp from 'amqplib';
+/**
+ * RabbitMQ Setup for Matchmaking Service
+ * Publishes match.found events when players are paired
+ */
 
-let connection: any = null;
-let channel: any = null;
+import { Connection, Publisher } from "rabbitmq-client";
 
+const RABBITMQ_HOST = process.env.RABBITMQ_URL || "amqp://admin:admin123@localhost:5672";
+const GAME_EVENTS_EXCHANGE = "game-events";
+
+let rabbit: Connection | null = null;
+let matchPublisher: Publisher | null = null;
+
+/**
+ * Connect to RabbitMQ and set up publisher
+ */
 export async function connectRabbitMQ(): Promise<void> {
   try {
-    const url = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
-    connection = await amqp.connect(url);
-    channel = await connection.createChannel();
-    
-    console.log('Connected to RabbitMQ');
+    rabbit = new Connection(RABBITMQ_HOST);
+
+    rabbit.on("error", (err: any) => {
+      console.error(`[matchmaking-service] RabbitMQ Error: ${err}`);
+    });
+
+    rabbit.on("connection", () => {
+      console.log("[matchmaking-service] RabbitMQ connection (re)established");
+    });
+
+    // Create publisher for match events
+    matchPublisher = rabbit.createPublisher({
+      confirm: true,
+      exchanges: [
+        { exchange: GAME_EVENTS_EXCHANGE, type: 'topic', durable: true }
+      ]
+    });
+
+    console.log("[matchmaking-service] RabbitMQ connected successfully");
   } catch (error) {
-    console.error('Failed to connect to RabbitMQ:', error);
+    console.error("[matchmaking-service] Failed to connect to RabbitMQ:", error);
     throw error;
   }
 }
 
+/**
+ * Publish match found event when two players are paired
+ */
 export async function publishMatchFound(player1Id: string, player2Id: string): Promise<void> {
-  if (!channel) {
-    throw new Error('RabbitMQ channel not initialized');
+  if (!matchPublisher) {
+    throw new Error('RabbitMQ publisher not initialized');
   }
 
-  const exchange = 'game-events';
-  const routingKey = 'match.found';
-  
-  await channel.assertExchange(exchange, 'topic', { durable: true });
-  
   const message = {
     type: 'MATCH_FOUND',
     timestamp: new Date().toISOString(),
@@ -35,22 +58,29 @@ export async function publishMatchFound(player1Id: string, player2Id: string): P
     }
   };
 
-  channel.publish(
-    exchange,
-    routingKey,
-    Buffer.from(JSON.stringify(message)),
-    { persistent: true }
+  await matchPublisher.send(
+    { exchange: GAME_EVENTS_EXCHANGE, routingKey: 'match.found' },
+    message
   );
 
-  console.log('Published match found:', message);
+  console.log('[matchmaking-service] Published match found:', message);
 }
 
+/**
+ * Close RabbitMQ connection gracefully
+ */
 export async function closeRabbitMQ(): Promise<void> {
   try {
-    if (channel) await channel.close();
-    if (connection) await connection.close();
-    console.log('RabbitMQ connection closed');
+    if (matchPublisher) {
+      await matchPublisher.close();
+      matchPublisher = null;
+    }
+    if (rabbit) {
+      await rabbit.close();
+      rabbit = null;
+    }
+    console.log('[matchmaking-service] RabbitMQ connection closed');
   } catch (error) {
-    console.error('Error closing RabbitMQ:', error);
+    console.error('[matchmaking-service] Error closing RabbitMQ:', error);
   }
 }

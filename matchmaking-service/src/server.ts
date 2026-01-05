@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { healthCheck } from './db';
 import { connectRabbitMQ, closeRabbitMQ } from './messaging/rabbitmq';
 import { matchmakingService } from './services/matchmaking-service';
+import { requireAuth } from './auth/keycloak';
 
 import queueRouter from './routes/queue';
 
@@ -26,6 +27,18 @@ app.get('/healthz', async (req: Request, res: Response) => {
     service: 'matchmaking-service',
     database: dbHealth,
     timestamp: new Date().toISOString() 
+  });
+});
+
+// Token introspection endpoint - returns authenticated user's info from JWT
+app.get('/me', requireAuth, (req, res) => {
+  res.status(200).json({
+    sub: req.userId,
+    email: req.user?.email,
+    username: req.user?.preferred_username,
+    name: req.user?.name,
+    roles: req.user?.realm_access?.roles || [],
+    emailVerified: req.user?.email_verified,
   });
 });
 
