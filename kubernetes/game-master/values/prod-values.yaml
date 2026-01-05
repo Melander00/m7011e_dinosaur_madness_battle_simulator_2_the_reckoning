@@ -21,7 +21,7 @@ image:
 
 server:
   image: ghcr.io/melander00/m7011e_game-server
-  serverTag: "bd2604a"
+  serverTag: "519c7da"
   domain: game.ltu-m7011e-1.se
   namespace: game-servers
   subpath: "/{ID}"
@@ -30,13 +30,13 @@ server:
 rabbit:
   username: "admin"
   password: "admin123"
-  host: rabbitmq-service-api.rabbitmq.svc.cluster.local
+  host: rabbitmq-service-api
   port: "5672"
 
 redis:
   username: 
   password: 
-  host: redis-service.prod.svc.cluster.local
+  host: redis-service
   port: "6379"
   db: "1"
 

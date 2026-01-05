@@ -31,5 +31,5 @@ ingress:
 rabbit:
   username: "admin"
   password: "admin123"
-  host: rabbitmq-service-api.rabbitmq.svc.cluster.local
+  host: rabbitmq-service-api
   port: "5672"
