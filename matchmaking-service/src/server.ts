@@ -10,7 +10,7 @@ import { matchmakingService } from './services/matchmaking-service';
 import { getMetrics } from './monitoring/prometheus';
 import queueRouter from './routes/queue';
 
-const app = express();
+const app = express(); 
 
 // Configuration
 const PORT = process.env.PORT || 3004;
