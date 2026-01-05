@@ -3,6 +3,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { healthCheck } from './db';
+import { initRedis, closeRedis } from './db/redis';
 import { connectRabbitMQ, closeRabbitMQ } from './messaging/rabbitmq';
 import { requireAuth } from './auth/keycloak';
 
@@ -56,7 +57,10 @@ app.get('/', (req: Request, res: Response) => {
         'GET /friendships': 'Get all friends for authenticated user',
         'GET /friendships/count': 'Get friend count',
         'POST /friendships': 'Create friendship (body: {userId})',
-        'DELETE /friendships/:userId': 'Delete friendship with user'
+        'DELETE /friendships/:userId': 'Delete friendship with user',
+        'POST /friendships/invite': 'Send game invite to friend (body: {toUserId})',
+        'GET /friendships/invite': 'Get all incoming game invites',
+        'DELETE /friendships/invite/:inviteId': 'Cancel a sent game invite'
       },
       requests: {
         'GET /requests/incoming': 'Get incoming friend requests',
@@ -87,6 +91,9 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // Start server (schema is managed by Flyway migrations)
 async function start(): Promise<void> {
   try {
+    // Connect to Redis (for game invites)
+    await initRedis();
+    
     // Connect to RabbitMQ
     await connectRabbitMQ();
 
@@ -104,12 +111,14 @@ async function start(): Promise<void> {
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
   await closeRabbitMQ();
+  await closeRedis();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully...');
   await closeRabbitMQ();
+  await closeRedis();
   process.exit(0);
 });
 

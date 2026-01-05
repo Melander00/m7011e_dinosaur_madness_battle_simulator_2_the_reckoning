@@ -422,4 +422,40 @@ describe('Friend Requests Routes', () => {
       });
     });
   });
+
+  describe('GET /requests/outgoing - additional error cases', () => {
+    it('should handle database errors on outgoing', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .get('/requests/outgoing')
+        .expect(500);
+
+      expect(response.body.error).toBe('Database error');
+    });
+  });
+
+  describe('PUT /requests/:fromUserId/reject - additional error cases', () => {
+    it('should handle database errors on reject', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .put(`/requests/${user2Id}/reject`)
+        .expect(500);
+
+      expect(response.body.error).toBe('Database error');
+    });
+  });
+
+  describe('PUT /requests/:fromUserId/accept - additional error cases', () => {
+    it('should handle database errors on accept', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .put(`/requests/${user2Id}/accept`)
+        .expect(500);
+
+      expect(response.body.error).toBe('Database error');
+    });
+  });
 });

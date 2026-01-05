@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
 import { requireAuth } from "../auth/keycloak";
+import { gameInviteService } from '../services/game-invite-service';
 
 const router = Router();
 
@@ -45,6 +46,26 @@ router.get('/', requireAuth, async (req: Request, res: Response, next: NextFunct
     );
 
     return res.json({ userId, friends: rows, count: rows.length });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * GET /friendships/invite
+ * Get all incoming game invites for authenticated user
+ * Requires valid JWT token
+ */
+router.get('/invite', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    const invites = await gameInviteService.getReceivedInvites(userId);
+    return res.json({ userId, invites, count: invites.length });
   } catch (err) {
     return next(err);
   }
@@ -101,6 +122,81 @@ router.get('/:userId', async (req: Request, res: Response, next: NextFunction) =
 
     return res.json({ userId, friends: rows, count: rows.length });
   } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * POST /friendships/invite
+ * Send a game invite to a friend
+ * Body: { toUserId: string }
+ * Requires valid JWT token
+ */
+router.post('/invite', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const fromUserId = req.userId;
+    const { toUserId } = req.body || {};
+
+    if (!fromUserId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    if (!toUserId) {
+      return res.status(400).json({ error: 'toUserId is required in body' });
+    }
+
+    if (fromUserId === toUserId) {
+      return res.status(400).json({ error: 'Cannot invite yourself' });
+    }
+
+    // Check if toUserId is a friend
+    const { rows } = await query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM relationships 
+       WHERE (userId1 = $1 AND userId2 = $2) OR (userId1 = $2 AND userId2 = $1)`,
+      [fromUserId, toUserId]
+    );
+
+    if (parseInt(rows[0].count, 10) === 0) {
+      return res.status(400).json({ error: 'You can only invite friends to play' });
+    }
+
+    const invite = await gameInviteService.sendInvite(fromUserId, toUserId);
+    return res.status(201).json({
+      message: 'Game invite sent successfully',
+      invite
+    });
+  } catch (err: any) {
+    if (err.message?.includes('already have a pending invite')) {
+      return res.status(409).json({ error: err.message });
+    }
+    return next(err);
+  }
+});
+
+/**
+ * DELETE /friendships/invite/:inviteId
+ * Cancel a sent game invite
+ * Requires valid JWT token
+ */
+router.delete('/invite/:inviteId', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.userId;
+    const { inviteId } = req.params;
+
+    if (!userId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    const cancelled = await gameInviteService.cancelInvite(inviteId, userId);
+    if (!cancelled) {
+      return res.status(404).json({ error: 'Invite not found or already expired' });
+    }
+
+    return res.json({ message: 'Game invite cancelled successfully' });
+  } catch (err: any) {
+    if (err.message?.includes('can only cancel your own')) {
+      return res.status(403).json({ error: err.message });
+    }
     return next(err);
   }
 });

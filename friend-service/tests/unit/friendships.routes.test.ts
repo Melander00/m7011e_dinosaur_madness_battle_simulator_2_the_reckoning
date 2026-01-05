@@ -25,6 +25,19 @@ jest.mock('../../src/auth/keycloak', () => ({
   },
 }));
 
+// Mock game invite service
+const mockSendInvite = jest.fn<any>();
+const mockGetReceivedInvites = jest.fn<any>();
+const mockCancelInvite = jest.fn<any>();
+
+jest.mock('../../src/services/game-invite-service', () => ({
+  gameInviteService: {
+    sendInvite: (...args: any[]) => mockSendInvite(...args),
+    getReceivedInvites: (...args: any[]) => mockGetReceivedInvites(...args),
+    cancelInvite: (...args: any[]) => mockCancelInvite(...args),
+  },
+}));
+
 describe('Friendships Routes', () => {
   let app: Express;
 
@@ -43,6 +56,17 @@ describe('Friendships Routes', () => {
     app.use((err: any, req: Request, res: Response, next: NextFunction) => {
       res.status(err.status || 500).json({ error: err.message });
     });
+
+    // Reset invite mocks defaults
+    mockSendInvite.mockResolvedValue({
+      inviteId: 'inv_test_123',
+      fromUserId: '11111111-1111-1111-1111-111111111111',
+      toUserId: '22222222-2222-2222-2222-222222222222',
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 300000,
+    });
+    mockGetReceivedInvites.mockResolvedValue([]);
+    mockCancelInvite.mockResolvedValue(true);
   });
 
   describe('GET /friendships', () => {
@@ -145,6 +169,16 @@ describe('Friendships Routes', () => {
       expect(typeof response.body.friendCount).toBe('number');
       expect(response.body.friendCount).toBe(42);
     });
+
+    it('should handle database errors', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .get('/friendships/count')
+        .expect(500);
+
+      expect(response.body.error).toBe('Database error');
+    });
   });
 
   describe('GET /friendships/:userId', () => {
@@ -174,6 +208,16 @@ describe('Friendships Routes', () => {
 
       expect(response.body.friends).toEqual([]);
       expect(response.body.count).toBe(0);
+    });
+
+    it('should handle database errors', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .get('/friendships/33333333-3333-3333-3333-333333333333')
+        .expect(500);
+
+      expect(response.body.error).toBe('Database error');
     });
   });
 
@@ -309,6 +353,227 @@ describe('Friendships Routes', () => {
           .expect(500);
 
         expect(response.body.error).toBe('Database error');
+      });
+    });
+  });
+
+  describe('GET /friendships/invite', () => {
+    describe('happy path', () => {
+      it('should return empty invites list when user has no invites', async () => {
+        mockGetReceivedInvites.mockResolvedValueOnce([]);
+
+        const response = await request(app)
+          .get('/friendships/invite')
+          .expect('Content-Type', /json/)
+          .expect(200);
+
+        expect(response.body.invites).toEqual([]);
+        expect(response.body.count).toBe(0);
+      });
+
+      it('should return list of received invites', async () => {
+        const invites = [
+          {
+            inviteId: 'inv_1',
+            fromUserId: '22222222-2222-2222-2222-222222222222',
+            toUserId: '11111111-1111-1111-1111-111111111111',
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 300000,
+          },
+          {
+            inviteId: 'inv_2',
+            fromUserId: '33333333-3333-3333-3333-333333333333',
+            toUserId: '11111111-1111-1111-1111-111111111111',
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 300000,
+          },
+        ];
+        mockGetReceivedInvites.mockResolvedValueOnce(invites);
+
+        const response = await request(app)
+          .get('/friendships/invite')
+          .expect(200);
+
+        expect(response.body.invites).toHaveLength(2);
+        expect(response.body.count).toBe(2);
+        expect(response.body.userId).toBe('11111111-1111-1111-1111-111111111111');
+      });
+    });
+
+    describe('error cases', () => {
+      it('should handle service errors', async () => {
+        mockGetReceivedInvites.mockRejectedValueOnce(new Error('Redis error'));
+
+        const response = await request(app)
+          .get('/friendships/invite')
+          .expect(500);
+
+        expect(response.body.error).toBe('Redis error');
+      });
+    });
+  });
+
+  describe('POST /friendships/invite', () => {
+    describe('happy path', () => {
+      it('should send a game invite to a friend', async () => {
+        // User is a friend
+        mockQuery.mockResolvedValueOnce({
+          rows: [{ count: '1' }],
+          rowCount: 1,
+        });
+
+        const response = await request(app)
+          .post('/friendships/invite')
+          .send({ toUserId: '22222222-2222-2222-2222-222222222222' })
+          .expect(201);
+
+        expect(response.body.message).toBe('Game invite sent successfully');
+        expect(response.body.invite).toBeDefined();
+        expect(response.body.invite.inviteId).toBe('inv_test_123');
+      });
+
+      it('should call gameInviteService.sendInvite with correct parameters', async () => {
+        mockQuery.mockResolvedValueOnce({
+          rows: [{ count: '1' }],
+          rowCount: 1,
+        });
+
+        await request(app)
+          .post('/friendships/invite')
+          .send({ toUserId: '22222222-2222-2222-2222-222222222222' })
+          .expect(201);
+
+        expect(mockSendInvite).toHaveBeenCalledWith(
+          '11111111-1111-1111-1111-111111111111',
+          '22222222-2222-2222-2222-222222222222'
+        );
+      });
+    });
+
+    describe('validation errors', () => {
+      it('should return 400 when toUserId is missing', async () => {
+        const response = await request(app)
+          .post('/friendships/invite')
+          .send({})
+          .expect(400);
+
+        expect(response.body.error).toBe('toUserId is required in body');
+      });
+
+      it('should return 400 when trying to invite yourself', async () => {
+        const response = await request(app)
+          .post('/friendships/invite')
+          .send({ toUserId: '11111111-1111-1111-1111-111111111111' })
+          .expect(400);
+
+        expect(response.body.error).toBe('Cannot invite yourself');
+      });
+
+      it('should return 400 when inviting non-friend', async () => {
+        mockQuery.mockResolvedValueOnce({
+          rows: [{ count: '0' }],
+          rowCount: 1,
+        });
+
+        const response = await request(app)
+          .post('/friendships/invite')
+          .send({ toUserId: '22222222-2222-2222-2222-222222222222' })
+          .expect(400);
+
+        expect(response.body.error).toBe('You can only invite friends to play');
+      });
+    });
+
+    describe('conflict errors', () => {
+      it('should return 409 when user already has pending invite', async () => {
+        mockQuery.mockResolvedValueOnce({
+          rows: [{ count: '1' }],
+          rowCount: 1,
+        });
+        mockSendInvite.mockRejectedValueOnce(
+          new Error('You already have a pending invite to this user')
+        );
+
+        const response = await request(app)
+          .post('/friendships/invite')
+          .send({ toUserId: '22222222-2222-2222-2222-222222222222' })
+          .expect(409);
+
+        expect(response.body.error).toBe('You already have a pending invite to this user');
+      });
+    });
+
+    describe('database errors', () => {
+      it('should handle database errors during friendship check', async () => {
+        mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await request(app)
+          .post('/friendships/invite')
+          .send({ toUserId: '22222222-2222-2222-2222-222222222222' })
+          .expect(500);
+
+        expect(response.body.error).toBe('Database error');
+      });
+    });
+  });
+
+  describe('DELETE /friendships/invite/:inviteId', () => {
+    describe('happy path', () => {
+      it('should cancel an existing invite', async () => {
+        mockCancelInvite.mockResolvedValueOnce(true);
+
+        const response = await request(app)
+          .delete('/friendships/invite/inv_test_123')
+          .expect(200);
+
+        expect(response.body.message).toBe('Game invite cancelled successfully');
+      });
+
+      it('should call gameInviteService.cancelInvite with correct parameters', async () => {
+        mockCancelInvite.mockResolvedValueOnce(true);
+
+        await request(app)
+          .delete('/friendships/invite/inv_test_123')
+          .expect(200);
+
+        expect(mockCancelInvite).toHaveBeenCalledWith(
+          'inv_test_123',
+          '11111111-1111-1111-1111-111111111111'
+        );
+      });
+    });
+
+    describe('error cases', () => {
+      it('should return 404 when invite does not exist', async () => {
+        mockCancelInvite.mockResolvedValueOnce(false);
+
+        const response = await request(app)
+          .delete('/friendships/invite/inv_nonexistent')
+          .expect(404);
+
+        expect(response.body.error).toBe('Invite not found or already expired');
+      });
+
+      it('should return 403 when trying to cancel someone elses invite', async () => {
+        mockCancelInvite.mockRejectedValueOnce(
+          new Error('You can only cancel your own invites')
+        );
+
+        const response = await request(app)
+          .delete('/friendships/invite/inv_test_123')
+          .expect(403);
+
+        expect(response.body.error).toBe('You can only cancel your own invites');
+      });
+
+      it('should handle service errors', async () => {
+        mockCancelInvite.mockRejectedValueOnce(new Error('Redis error'));
+
+        const response = await request(app)
+          .delete('/friendships/invite/inv_test_123')
+          .expect(500);
+
+        expect(response.body.error).toBe('Redis error');
       });
     });
   });
