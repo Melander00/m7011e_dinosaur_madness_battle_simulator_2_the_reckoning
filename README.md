@@ -1,13 +1,15 @@
-dinosaur game test
-
 # Database schema (paste picture, shortly explain it)
 REQ9: System must include documented and well-designed database schema with proper relationships (must be able to explain and motivate design choices)
+
+![Architecture](./report/img/DB_Schema.png)
 
 # API documentation (summary)
 REQ16: System must include comprehensive API documentation using OpenAPI, Swagger, or AsyncAPI specifications
 
 # Architecture diagram
 REQ17: Project must include comprehensive architecture diagram using C4 model or equivalent architectural documentation, and documentation in GitHub repository
+
+See the [documentation](./DOCUMENTATION.md)
 
 # Performance analysis
 REQ18: Project must include performance analysis with load testing results and bottleneck identification
