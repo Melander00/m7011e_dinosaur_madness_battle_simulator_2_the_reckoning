@@ -20,11 +20,11 @@ WORKDIR /app
 RUN addgroup -S app && adduser -S app -G app
 
 # Copy package.json and install prod deps only
-COPY package*.json ./
+COPY package*.json /app/
 RUN npm ci --omit=dev
 
 # Copy compiled output
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist /app/dist
 
 USER app
 

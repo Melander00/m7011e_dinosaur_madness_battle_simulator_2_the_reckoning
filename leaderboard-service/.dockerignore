@@ -10,3 +10,4 @@ coverage/
 *.test.ts
 jest.config.js
 jest.config.integration.js
+dist
