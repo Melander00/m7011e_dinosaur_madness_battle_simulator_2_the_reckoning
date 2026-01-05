@@ -4,7 +4,7 @@ metadata:
   name: {{ .Values.app.name }}
   annotations:
     cert-manager.io/cluster-issuer: {{ .Values.ingress.certIssuer }}
-    traefik.ingress.kubernetes.io/router.middlewares: "default-{{ .Values.app.name }}-strip@kubernetescrd"
+    traefik.ingress.kubernetes.io/router.middlewares: "default-{{ .Values.app.name }}-strip-{{ .Values.env }}@kubernetescrd"
 spec:
   ingressClassName: traefik
   rules:
