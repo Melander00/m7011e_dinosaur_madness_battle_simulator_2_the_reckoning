@@ -31,7 +31,7 @@ type FriendsResponse = {
  * Backend mapping happens HERE, nowhere else.
  */
 export async function getFriends(_userSub: string): Promise<Friend[]> {
-  const res = await fetchJson<FriendsResponse>(`/friendships/${_userSub}`);
+  const res = await fetchJson<FriendsResponse>(`/api/friend/friendships/${_userSub}`);
 
   return res.friends.map((f) => ({
     id: String(f.userID), // temporary adapter

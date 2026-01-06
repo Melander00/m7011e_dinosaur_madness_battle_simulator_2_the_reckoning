@@ -9,21 +9,21 @@ All endpoints are exposed as subpaths to the environment root. For example, lead
 | Service             | Subpath             | Documentation                             | Test Coverage |
 | ------------------- | ------------------- | ----------------------------------------- | ------------- |
 | User Service        | `/api/user/`        | [README](./user-service/README.md)        | 88.05 %       |
-| Friends Service     | `/api/friends/`     | [README](./friends-service/README.md)     | 83.33 %       |
+| Friends Service     | `/api/friend/`      | [README](./friend-service/README.md)      | 83.33 %       |
 | Matchmaking Service | `/api/matchmaking/` | [README](./matchmaking-service/README.md) | 82.49 %       |
-| Leaderboard Service | `/api/leaderboard/` | [README](./leaderboard-service/README.md) | 0.00 %       |
+| Leaderboard Service | `/api/leaderboard/` | [README](./leaderboard-service/README.md) | 75.69 %       |
 | Game Master         | `/api/game-master/` | [README](./game-master/README.md)         | 91.66 %       |
 
 ## Developer services
 
 These are services that our services depend on.
 
-| Service    | Documentation                                |
-| ---------- | -------------------------------------------- |
-| ArgoCD     | [README](./argocd/README.md)                 |
-| Keycloak   | No custom usage                              |
-| RabbitMQ   | No custom usage                              |
-| Prometheus | See each service for which metrics are used. |
+| Service    | Documentation                |
+| ---------- | ---------------------------- |
+| ArgoCD     | [README](./argocd/README.md) |
+| Keycloak   |                              |
+| RabbitMQ   |                              |
+| Prometheus |                              |
 
 ## Database Schema
 

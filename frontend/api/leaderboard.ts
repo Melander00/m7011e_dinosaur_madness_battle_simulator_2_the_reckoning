@@ -19,7 +19,7 @@ export interface UserRank {
  * TEMP: mock toggle for frontend development
  * Set to false when real backend is available
  */
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 /**
  * Mock data matching backend contract
@@ -47,7 +47,7 @@ export async function getTopPlayers(
   }
 
   const data = await fetchJson<{ leaderboard: LeaderboardEntry[] }>(
-    `/leaderboard/top?limit=${limit}`
+    `/api/leaderboard/leaderboard/top?limit=${limit}`
   );
   return data.leaderboard;
 }
@@ -57,7 +57,7 @@ export async function getMyRank(token: string): Promise<UserRank> {
     return mockMyRank;
   }
 
-  return fetchJson<UserRank>("/leaderboard/me", { token });
+  return fetchJson<UserRank>("/leaderboard/leaderboard/me", { token });
 }
 
 
