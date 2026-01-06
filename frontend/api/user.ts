@@ -25,14 +25,14 @@ export type PostUsersMeResponse = {
 -------------------------------- */
 
 export function postUsersMe(token: string) {
-  return fetchJson<PostUsersMeResponse>("/users/me", {
+  return fetchJson<PostUsersMeResponse>("/api/user/users/me", {
     method: "POST",
     token,
   });
 }
 
 export function getUsersMe(token: string) {
-  return fetchJson<UserMeResponse>("/users/me", { token });
+  return fetchJson<UserMeResponse>("/api/user/users/me", { token });
 }
 
 export function getUserById(userId: string) {
