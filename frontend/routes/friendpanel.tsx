@@ -1,6 +1,14 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
-import { getFriends, getIncomingRequests, getOutgoingRequests, respondToRequest, sendFriendRequest, type Friend, type FriendRequest } from "~/api/friends";
+import {
+  getFriends,
+  getIncomingRequests,
+  getOutgoingRequests,
+  respondToRequest,
+  sendFriendRequest,
+  type Friend,
+  type FriendRequest,
+} from "~/api/friends";
 import { getUserById } from "~/api/user";
 import { useAuth } from "~/keycloak/useAuth";
 
@@ -30,12 +38,21 @@ export default function FriendPanel() {
     ])
       .then(([friendList, incomingReqs, outgoingReqs]) => {
         if (cancelled) return;
+
+        // 🔍 TEMP DEBUG — REMOVE AFTER CONFIRMATION
+        console.log("FriendPanel hydrate:", {
+          friends: friendList,
+          incoming: incomingReqs,
+          outgoing: outgoingReqs,
+        });
+
         setFriends(friendList);
         setIncoming(incomingReqs);
         setOutgoing(outgoingReqs);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -71,7 +88,10 @@ export default function FriendPanel() {
       return;
     }
 
-    if (friends.some((f) => f.id === user.id) || outgoing.some((o) => o.userId === user.id)) {
+    if (
+      friends.some((f) => f.id === user.id) ||
+      outgoing.some((o) => o.userId === user.id)
+    ) {
       return;
     }
 
@@ -83,7 +103,10 @@ export default function FriendPanel() {
     }
   }
 
-  async function handleIncoming(action: "accept" | "reject", userId: string) {
+  async function handleIncoming(
+    action: "accept" | "reject",
+    userId: string
+  ) {
     if (!token) {
       setError("Missing access token");
       return;
@@ -91,16 +114,22 @@ export default function FriendPanel() {
 
     try {
       await respondToRequest(token, userId, action);
-      setIncoming((prev) => prev.filter((req) => req.userId !== userId));
+      setIncoming((prev) =>
+        prev.filter((req) => req.userId !== userId)
+      );
       if (action === "accept") {
-        setFriends((prev) => [...prev, { id: userId, username: userId }]);
+        setFriends((prev) => [
+          ...prev,
+          { id: userId, username: userId },
+        ]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
   }
 
-  const renderName = (id: string) => friends.find((f) => f.id === id)?.username ?? id;
+  const renderName = (id: string) =>
+    friends.find((f) => f.id === id)?.username ?? id;
 
   return (
     <div style={{ padding: "1rem" }}>
@@ -110,7 +139,9 @@ export default function FriendPanel() {
         <h3>Your friends</h3>
         {loading && <p>Loading friends…</p>}
         {error && <p style={{ color: "red" }}>{error}</p>}
-        {!loading && !friends.length && !error && <p>No friends yet.</p>}
+        {!loading && !friends.length && !error && (
+          <p>No friends yet.</p>
+        )}
         {!!friends.length && (
           <ul>
             {friends.map((f) => (
@@ -143,7 +174,9 @@ export default function FriendPanel() {
                 outgoing.some((o) => o.userId === searchResult.id)
               }
             >
-              {outgoing.some((o) => o.userId === searchResult.id) ? "Pending" : "Add Friend"}
+              {outgoing.some((o) => o.userId === searchResult.id)
+                ? "Pending"
+                : "Add Friend"}
             </button>
           </div>
         )}
@@ -153,7 +186,9 @@ export default function FriendPanel() {
             <strong>Outgoing requests:</strong>
             <ul>
               {outgoing.map((req) => (
-                <li key={req.userId}>{renderName(req.userId)} — pending</li>
+                <li key={req.userId}>
+                  {renderName(req.userId)} — pending
+                </li>
               ))}
             </ul>
           </div>
@@ -166,10 +201,16 @@ export default function FriendPanel() {
         {incoming.map((req) => (
           <div key={req.userId} style={{ marginBottom: "0.5rem" }}>
             <span>{renderName(req.userId)}</span>
-            <button onClick={() => void handleIncoming("accept", req.userId)} style={{ marginLeft: "0.5rem" }}>
+            <button
+              onClick={() => void handleIncoming("accept", req.userId)}
+              style={{ marginLeft: "0.5rem" }}
+            >
               Accept
             </button>
-            <button onClick={() => void handleIncoming("reject", req.userId)} style={{ marginLeft: "0.5rem" }}>
+            <button
+              onClick={() => void handleIncoming("reject", req.userId)}
+              style={{ marginLeft: "0.5rem" }}
+            >
               Decline
             </button>
           </div>
