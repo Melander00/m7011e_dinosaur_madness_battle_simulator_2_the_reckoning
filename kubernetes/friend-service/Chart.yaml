@@ -1,0 +1,5 @@
+apiVersion: v2
+name: friend-service
+description: Friend service for the system
+version: 1.0.0
+appVersion: "1.0"
