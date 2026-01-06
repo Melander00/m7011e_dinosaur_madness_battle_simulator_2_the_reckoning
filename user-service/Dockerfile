@@ -1,26 +1,33 @@
 # --- Build Stage ---
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package*.json .
+
 RUN npm ci && npm cache clean --force
 
 COPY . .
-RUN npm run build && npm prune --omit=dev
+
+RUN npm run build && npm prune --production
 
 # --- Run Stage ---
-FROM node:20-alpine AS app
+FROM node:22-alpine AS app
 
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV PORT=3002
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S user -u 1001
 
-EXPOSE 3002
+COPY --from=builder --chown=user:nodejs /app/package.json /app/package.json
+COPY --from=builder --chown=user:nodejs /app/dist /app/dist
+COPY --from=builder --chown=user:nodejs /app/node_modules /app/node_modules
+# COPY --from=builder --chown=user:nodejs /app/prisma /app/prisma
+# COPY --from=builder --chown=user:nodejs /app/src/generated/prisma/lib* /app/dist/generated/prisma/
 
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
+# RUN chmod +x /app/entrypoint.sh
 
-CMD ["node", "dist/main.js"]
+USER user
+
+# ENTRYPOINT [ "/app/entrypoint.sh" ]
+CMD [ "npm", "run", "start" ]
