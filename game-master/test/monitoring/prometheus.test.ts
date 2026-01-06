@@ -3,19 +3,21 @@ describe("Prometheus metrics (mocked)", () => {
   let Prom: typeof import("../../src/monitoring/prometheus");
   let incMock: jest.Mock;
   let decMock: jest.Mock;
+  let setMock: jest.Mock;
   let observeMock: jest.Mock;
   let metricsMock: jest.Mock;
 
   beforeEach(() => {
     incMock = jest.fn();
     decMock = jest.fn();
+    setMock = jest.fn();
     observeMock = jest.fn();
     metricsMock = jest.fn().mockResolvedValue("mock-metrics");
 
     jest.isolateModules(() => {
       jest.mock("prom-client", () => {
         const Counter = jest.fn().mockImplementation(() => ({ inc: incMock }));
-        const Gauge = jest.fn().mockImplementation(() => ({ inc: incMock, dec: decMock }));
+        const Gauge = jest.fn().mockImplementation(() => ({ inc: incMock, dec: decMock, set: setMock }));
         const Histogram = jest.fn().mockImplementation(() => ({ observe: observeMock }));
         const register = { metrics: metricsMock, contentType: "text/plain" };
         return { Counter, Gauge, Histogram, register };

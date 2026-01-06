@@ -3,7 +3,6 @@ import { getMatchById, removeMatchById, resetUsers } from "./db/redis";
 import { startGameServer } from "./game/server";
 import { removeServerById } from "./k8s/kubernetes";
 import { delay } from "./lib/delay";
-import { decActiveMatches, incActiveMatches } from "./monitoring/prometheus";
 
 type CreateMatchMessage = {
     user1: string;
@@ -39,7 +38,7 @@ export function initConsumers(rabbitmq: Connection) {
 
         await startGameServer(user1, user2, body.ranked ?? false)
 
-        incActiveMatches()
+        // incActiveMatches()
     })
 
     const completedMatchConsumer = rabbitmq.createConsumer({
@@ -63,7 +62,7 @@ export function initConsumers(rabbitmq: Connection) {
 
         await delay(1000)
         await removeFinishedMatch(body.matchId)
-        decActiveMatches()
+        // decActiveMatches()
     })
 
 
