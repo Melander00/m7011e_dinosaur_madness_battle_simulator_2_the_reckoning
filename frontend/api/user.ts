@@ -36,5 +36,5 @@ export function getUsersMe(token: string) {
 }
 
 export function getUserById(userId: string) {
-  return fetchJson<UserMeResponse>(`/users/${userId}`);
+  return fetchJson<UserMeResponse>(`/api/user/users/${userId}`);
 }

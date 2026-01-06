@@ -13,7 +13,7 @@ either return JSON or throw an error
 */
 
 const DEFAULT_DEV_API_URL = "http://localhost:3005";
-const DEFAULT_PROD_API_URL = "/api";
+const DEFAULT_PROD_API_URL = "";
 
 function resolveApiBaseUrl() {
   const envUrl = import.meta.env.VITE_API_URL;
@@ -21,7 +21,8 @@ function resolveApiBaseUrl() {
   return url.replace(/\/$/, "");
 }
 
-const API_BASE_URL = resolveApiBaseUrl();
+const API_BASE_URL = import.meta.env.PROD ? DEFAULT_PROD_API_URL : DEFAULT_DEV_API_URL;
+// const API_BASE_URL = resolveApiBaseUrl();
 
 type FetchOptions = RequestInit & { token?: string };
 
