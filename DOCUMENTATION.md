@@ -6,13 +6,13 @@ All endpoints are exposed as subpaths to the environment root. For example, lead
 
 ## Public Services and their subpaths
 
-| Service             | Subpath             | Documentation                             |
-| ------------------- | ------------------- | ----------------------------------------- |
-| User Service        | `/api/user/`        | [README](./user-service/README.md)        |
-| Friends Service     | `/api/friends/`     | [README](./friends-service/README.md)     |
-| Matchmaking Service | `/api/matchmaking/` | [README](./matchmaking-service/README.md) |
-| Leaderboard Service | `/api/leaderboard/` | [README](./leaderboard-service/README.md) |
-| Game Master         | `/api/game-master/` | [README](./game-master/README.md)         |
+| Service             | Subpath             | Documentation                             | Test Coverage |
+| ------------------- | ------------------- | ----------------------------------------- | ------------- |
+| User Service        | `/api/user/`        | [README](./user-service/README.md)        | 88.05 %       |
+| Friends Service     | `/api/friends/`     | [README](./friends-service/README.md)     | 83.33 %       |
+| Matchmaking Service | `/api/matchmaking/` | [README](./matchmaking-service/README.md) | 82.49 %       |
+| Leaderboard Service | `/api/leaderboard/` | [README](./leaderboard-service/README.md) | 0.00 %       |
+| Game Master         | `/api/game-master/` | [README](./game-master/README.md)         | 91.66 %       |
 
 ## Developer services
 
@@ -26,10 +26,11 @@ These are services that our services depend on.
 | Prometheus | See each service for which metrics are used. |
 
 ## Database Schema
+
 ![Architecture](./report/img/DB_Schema.png)
 
-
 ## Diagrams
+
 ![Architecture](./report/img/Microservices.png)
 ![Architecture](./report/img/CI_CD_pipeline.png)
 ![Architecture](./report/img/Monitoring.png)
