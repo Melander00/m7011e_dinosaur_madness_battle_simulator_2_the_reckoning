@@ -35,7 +35,7 @@ router.post('/join', requireAuth, async (req: Request, res: Response, next: Next
     }
 
     // Fetch user's elo from leaderboard service
-    const elo = await getUserElo(userId, authToken);
+    const elo = await getUserElo(userId);
 
     // Add user to matchmaking queue
     await matchmakingService.addToQueue(userId, elo);
@@ -57,7 +57,7 @@ router.post('/join', requireAuth, async (req: Request, res: Response, next: Next
 });
 
 router.get("/me", requireAuth, async (req, res, next) => {
-    const elo = await getUserElo(req.userId!, "")
+    const elo = await getUserElo(req.userId!)
     res.json({elo})
 })
 

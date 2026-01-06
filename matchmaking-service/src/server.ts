@@ -1,117 +1,26 @@
-import cors from 'cors';
-import 'dotenv/config';
-import express, { NextFunction, Request, Response } from 'express';
-import morgan from 'morgan';
-import { requireAuth } from './auth/keycloak';
-import { healthCheck } from './db';
-import { closeRabbitMQ, connectRabbitMQ } from './messaging/rabbitmq';
-import { matchmakingService } from './services/matchmaking-service';
+import "dotenv/config";
+import app from "./app";
+import { closeRabbitMQ, connectRabbitMQ } from "./messaging/rabbitmq";
+import { matchmakingService } from "./services/matchmaking-service";
 
-import { getMetrics } from './monitoring/prometheus';
-import queueRouter from './routes/queue';
-
-const app = express(); 
-
-// Configuration
 const PORT = process.env.PORT || 3004;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(morgan('dev'));
+async function start() {
+  await connectRabbitMQ();
+  matchmakingService.startMatchmaking();
 
-// Health check
-app.get('/healthz', async (req: Request, res: Response) => {
-  const dbHealth = await healthCheck();
-  res.json({ 
-    status: dbHealth.status === 'healthy' ? 'ok' : 'degraded', 
-    service: 'matchmaking-service',
-    database: dbHealth,
-    timestamp: new Date().toISOString() 
+  app.listen(PORT, () => {
+    console.log(`matchmaking-service listening on http://localhost:${PORT}`);
   });
-});
-
-// Token introspection endpoint - returns authenticated user's info from JWT
-app.get('/me', requireAuth, (req, res) => {
-  res.status(200).json({
-    sub: req.userId,
-    email: req.user?.email,
-    username: req.user?.preferred_username,
-    name: req.user?.name,
-    roles: req.user?.realm_access?.roles || [],
-    emailVerified: req.user?.email_verified,
-  });
-});
-
-// API Routes
-app.use('/queue', queueRouter);
-
-// Root endpoint
-app.get('/', (req: Request, res: Response) => {
-  res.json({
-    service: 'matchmaking-service',
-    version: '1.0.0',
-    endpoints: {
-      queue: {
-        'POST /queue/join': 'Join matchmaking queue (requires auth token)',
-        'POST /queue/leave': 'Leave matchmaking queue',
-        'GET /queue/status?userId=<id>': 'Get queue status for user',
-        'GET /queue/stats': 'Get overall queue statistics'
-      }
-    }
-  });
-});
-
-// Metrics endpoint
-app.get("/metrics", async (req, res) => {
-  const data = await getMetrics()
-  res.set("Content-Type", data.contentType)
-  res.end(data.metrics)
-})
-
-// 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
-
-// Error handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error('Unhandled error:', err);
-  res.status(err.status || 500).json({ 
-    error: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
-});
-
-// Initialize RabbitMQ and start server (schema is managed by Flyway migrations)
-async function start(): Promise<void> {
-  try {
-    // Connect to RabbitMQ
-    await connectRabbitMQ();
-
-    // Start matchmaking background service
-    matchmakingService.startMatchmaking();
-
-    app.listen(PORT, () => {
-      console.log(`matchmaking-service listening on http://localhost:${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
-  } catch (err) {
-    console.error('Failed to start server:', err);
-    process.exit(1);
-  }
 }
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+process.on("SIGTERM", async () => {
   matchmakingService.stopMatchmaking();
   await closeRabbitMQ();
   process.exit(0);
 });
 
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
+process.on("SIGINT", async () => {
   matchmakingService.stopMatchmaking();
   await closeRabbitMQ();
   process.exit(0);
