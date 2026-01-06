@@ -74,7 +74,7 @@ export async function getIncomingRequests(
 ): Promise<FriendRequest[]> {
   // FIX: add /api prefix
   const res = await fetchJson<RequestsResponse>(
-    "/api/requests/incoming",
+    "/api/friends/requests/incoming",
     { token }
   );
 
@@ -89,7 +89,7 @@ export async function getOutgoingRequests(
 ): Promise<FriendRequest[]> {
   // FIX: add /api prefix
   const res = await fetchJson<RequestsResponse>(
-    "/api/requests/outgoing",
+    "/api/friends/requests/outgoing",
     { token }
   );
 
@@ -104,7 +104,7 @@ export async function sendFriendRequest(
   toUserId: string
 ) {
   // FIX: add /api prefix
-  return fetchJson("/api/requests", {
+  return fetchJson("/api/friends/requests", {
     method: "POST",
     token,
     headers: { "Content-Type": "application/json" },
@@ -118,6 +118,6 @@ export async function respondToRequest(
   action: "accept" | "reject"
 ) {
   // FIX: add /api prefix
-  const path = `/api/requests/${fromUserId}/${action}`;
+  const path = `/api/friends/requests/${fromUserId}/${action}`;
   return fetchJson(path, { method: "PUT", token });
 }
