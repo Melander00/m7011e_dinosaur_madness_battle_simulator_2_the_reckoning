@@ -81,6 +81,10 @@ export function initGame(res: MatchDomainResponse, token: string) {
         document.getElementById("gameOver")!.textContent = `${winner} wins!`;
         document.getElementById("gameOver")!.style.display = "block";
         gameOver = true;
+
+        setTimeout(() => {
+            window.location.pathname = "/"
+        }, 4000)
     });
 
     // Keyboard input: SPACE to attack
