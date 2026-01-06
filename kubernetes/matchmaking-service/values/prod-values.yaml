@@ -20,7 +20,7 @@ env: production
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_matchmaking-service
-  tag: "117c072"
+  tag: "ad1a15a"
 
 # Ingress configuration
 ingress:

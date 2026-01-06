@@ -19,11 +19,11 @@ env: production
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_game-master
-  tag: "03b5af6"
+  tag: "4b8d47f"
 
 server:
   image: ghcr.io/melander00/m7011e_game-server
-  serverTag: "519c7da"
+  serverTag: "885f52c"
   domain: game.ltu-m7011e-1.se
   namespace: game-servers
   subpath: "/{ID}"
