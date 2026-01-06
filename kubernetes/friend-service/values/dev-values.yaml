@@ -26,3 +26,16 @@ image:
 ingress:
   # Use staging for testing to avoid rate limits
   certIssuer: letsencrypt-staging
+
+redis:
+  username: 
+  password: 
+  host: redis-service
+  port: "6379"
+  db: "2"
+
+rabbit:
+  username: "admin"
+  password: "admin123"
+  host: rabbitmq-service-api
+  port: "5672"

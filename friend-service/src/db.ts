@@ -2,13 +2,13 @@ import { Pool, QueryResult, QueryResultRow } from 'pg';
 
 // PostgreSQL connection pool
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+//   connectionString: process.env.DATABASE_URL,
   host: process.env.PGHOST,
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
   database: process.env.PGDATABASE,
   port: process.env.PGPORT ? parseInt(process.env.PGPORT, 10) : undefined,
-  ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
+//   ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
