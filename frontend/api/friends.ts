@@ -29,7 +29,7 @@ type FriendsResponse = {
 
 type RequestsResponse = {
   userId: string | number;
-  requests: Array<{ fromUserId?: string; toUserId?: string; status: number }>;
+  requests: Array<{ fromuserid?: string; touserid?: string; status: number }>;
   count: number;
 };
 
@@ -79,7 +79,7 @@ export async function getIncomingRequests(
   );
 
   return res.requests
-    .map((req) => req.fromUserId ?? "")
+    .map((req) => req.fromuserid ?? "")
     .filter(Boolean)
     .map((userId) => ({ userId, status: 0 }));
 }
