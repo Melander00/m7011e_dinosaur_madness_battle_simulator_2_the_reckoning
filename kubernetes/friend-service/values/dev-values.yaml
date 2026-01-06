@@ -2,7 +2,7 @@
 
 app:
   name: friend
-  replicas: 3
+  replicas: 1
   port: 3001
 
 
