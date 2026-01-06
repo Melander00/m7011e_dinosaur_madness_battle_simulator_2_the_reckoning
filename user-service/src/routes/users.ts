@@ -56,8 +56,11 @@ export async function getUsersMe(req: express.Request, res: express.Response, ne
 
     let user = await userRepo.getUserById(userId);
 
-    // DEV ONLY: auto-create missing user
-    if (!user && process.env.NODE_ENV === "development") {
+    /**
+     * PROD-SAFE lazy user provisioning
+     * requireAuth already verified the JWT
+     */
+    if (!user) {
       const username = req.user?.preferred_username ?? null;
       await userRepo.upsertUser(userId, username);
       user = await userRepo.getUserById(userId);
