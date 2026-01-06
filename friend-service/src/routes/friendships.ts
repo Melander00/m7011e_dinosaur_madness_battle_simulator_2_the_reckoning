@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
 import { requireAuth } from "../auth/keycloak";
 import { gameInviteService } from '../services/game-invite-service';
+import { createRequestDuration, incRequestCount } from '../monitoring/prometheus';
 
 const router = Router();
 
@@ -26,10 +27,12 @@ interface CountRow {
  * Requires valid JWT token
  */
 router.get('/', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "GET", endpoint: "/friendships" });
   try {
     const userId = req.userId;
     
     if (!userId) {
+      incRequestCount(500, { method: "GET", endpoint: "/friendships" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
@@ -45,9 +48,13 @@ router.get('/', requireAuth, async (req: Request, res: Response, next: NextFunct
       [userId]
     );
 
+    incRequestCount(200, { method: "GET", endpoint: "/friendships" });
     return res.json({ userId, friends: rows, count: rows.length });
   } catch (err) {
+    incRequestCount(500, { method: "GET", endpoint: "/friendships" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -57,17 +64,23 @@ router.get('/', requireAuth, async (req: Request, res: Response, next: NextFunct
  * Requires valid JWT token
  */
 router.get('/invite', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "GET", endpoint: "/friendships/invite" });
   try {
     const userId = req.userId;
     
     if (!userId) {
+      incRequestCount(500, { method: "GET", endpoint: "/friendships/invite" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     const invites = await gameInviteService.getReceivedInvites(userId);
+    incRequestCount(200, { method: "GET", endpoint: "/friendships/invite" });
     return res.json({ userId, invites, count: invites.length });
   } catch (err) {
+    incRequestCount(500, { method: "GET", endpoint: "/friendships/invite" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -77,10 +90,12 @@ router.get('/invite', requireAuth, async (req: Request, res: Response, next: Nex
  * Requires valid JWT token
  */
 router.get('/count', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "GET", endpoint: "/friendships/count" });
   try {
     const userId = req.userId;
     
     if (!userId) {
+      incRequestCount(500, { method: "GET", endpoint: "/friendships/count" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
@@ -91,9 +106,13 @@ router.get('/count', requireAuth, async (req: Request, res: Response, next: Next
       [userId]
     );
 
+    incRequestCount(200, { method: "GET", endpoint: "/friendships/count" });
     return res.json({ userId, friendCount: parseInt(rows[0].count, 10) });
   } catch (err) {
+    incRequestCount(500, { method: "GET", endpoint: "/friendships/count" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -102,9 +121,11 @@ router.get('/count', requireAuth, async (req: Request, res: Response, next: Next
  * Get all friends for a specific user (public)
  */
 router.get('/:userId', async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "GET", endpoint: "/friendships/:userId" });
   try {
     const userId = req.params.userId;
     if (!userId) {
+      incRequestCount(400, { method: "GET", endpoint: "/friendships/:userId" });
       return res.status(400).json({ error: 'Valid userId is required' });
     }
 
@@ -120,9 +141,13 @@ router.get('/:userId', async (req: Request, res: Response, next: NextFunction) =
       [userId]
     );
 
+    incRequestCount(200, { method: "GET", endpoint: "/friendships/:userId" });
     return res.json({ userId, friends: rows, count: rows.length });
   } catch (err) {
+    incRequestCount(500, { method: "GET", endpoint: "/friendships/:userId" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -133,19 +158,23 @@ router.get('/:userId', async (req: Request, res: Response, next: NextFunction) =
  * Requires valid JWT token
  */
 router.post('/invite', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "POST", endpoint: "/friendships/invite" });
   try {
     const fromUserId = req.userId;
     const { toUserId } = req.body || {};
 
     if (!fromUserId) {
+      incRequestCount(500, { method: "POST", endpoint: "/friendships/invite" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     if (!toUserId) {
+      incRequestCount(400, { method: "POST", endpoint: "/friendships/invite" });
       return res.status(400).json({ error: 'toUserId is required in body' });
     }
 
     if (fromUserId === toUserId) {
+      incRequestCount(400, { method: "POST", endpoint: "/friendships/invite" });
       return res.status(400).json({ error: 'Cannot invite yourself' });
     }
 
@@ -157,19 +186,25 @@ router.post('/invite', requireAuth, async (req: Request, res: Response, next: Ne
     );
 
     if (parseInt(rows[0].count, 10) === 0) {
+      incRequestCount(400, { method: "POST", endpoint: "/friendships/invite" });
       return res.status(400).json({ error: 'You can only invite friends to play' });
     }
 
     const invite = await gameInviteService.sendInvite(fromUserId, toUserId);
+    incRequestCount(201, { method: "POST", endpoint: "/friendships/invite" });
     return res.status(201).json({
       message: 'Game invite sent successfully',
       invite
     });
   } catch (err: any) {
     if (err.message?.includes('already have a pending invite')) {
+      incRequestCount(409, { method: "POST", endpoint: "/friendships/invite" });
       return res.status(409).json({ error: err.message });
     }
+    incRequestCount(500, { method: "POST", endpoint: "/friendships/invite" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -179,25 +214,33 @@ router.post('/invite', requireAuth, async (req: Request, res: Response, next: Ne
  * Requires valid JWT token
  */
 router.delete('/invite/:inviteId', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "DELETE", endpoint: "/friendships/invite/:inviteId" });
   try {
     const userId = req.userId;
     const { inviteId } = req.params;
 
     if (!userId) {
+      incRequestCount(500, { method: "DELETE", endpoint: "/friendships/invite/:inviteId" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     const cancelled = await gameInviteService.cancelInvite(inviteId, userId);
     if (!cancelled) {
+      incRequestCount(404, { method: "DELETE", endpoint: "/friendships/invite/:inviteId" });
       return res.status(404).json({ error: 'Invite not found or already expired' });
     }
 
+    incRequestCount(200, { method: "DELETE", endpoint: "/friendships/invite/:inviteId" });
     return res.json({ message: 'Game invite cancelled successfully' });
   } catch (err: any) {
     if (err.message?.includes('can only cancel your own')) {
+      incRequestCount(403, { method: "DELETE", endpoint: "/friendships/invite/:inviteId" });
       return res.status(403).json({ error: err.message });
     }
+    incRequestCount(500, { method: "DELETE", endpoint: "/friendships/invite/:inviteId" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -208,19 +251,23 @@ router.delete('/invite/:inviteId', requireAuth, async (req: Request, res: Respon
  * Requires valid JWT token
  */
 router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "POST", endpoint: "/friendships" });
   try {
     const userId1 = req.userId; // authenticated user
     const { userId: userId2 } = req.body || {};
 
     if (!userId1) {
+      incRequestCount(500, { method: "POST", endpoint: "/friendships" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     if (!userId2) {
+      incRequestCount(400, { method: "POST", endpoint: "/friendships" });
       return res.status(400).json({ error: 'userId is required in body' });
     }
 
     if (userId1 === userId2) {
+      incRequestCount(400, { method: "POST", endpoint: "/friendships" });
       return res.status(400).json({ error: 'Cannot create friendship with self' });
     }
 
@@ -231,6 +278,7 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
     );
 
     if (users.length !== 2) {
+      incRequestCount(404, { method: "POST", endpoint: "/friendships" });
       return res.status(404).json({ error: 'One or both users do not exist' });
     }
 
@@ -242,12 +290,16 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
       [userId1, userId2]
     );
 
+    incRequestCount(201, { method: "POST", endpoint: "/friendships" });
     return res.status(201).json({ 
       message: 'Friendship created successfully',
       friendship: { userId1, userId2 }
     });
   } catch (err) {
+    incRequestCount(500, { method: "POST", endpoint: "/friendships" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -257,15 +309,18 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
  * Requires valid JWT token
  */
 router.delete('/:userId', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "DELETE", endpoint: "/friendships/:userId" });
   try {
     const userId1 = req.userId; // authenticated user
     const userId2 = req.params.userId;
 
     if (!userId1) {
+      incRequestCount(500, { method: "DELETE", endpoint: "/friendships/:userId" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     if (!userId2) {
+      incRequestCount(400, { method: "DELETE", endpoint: "/friendships/:userId" });
       return res.status(400).json({ error: 'userId is required' });
     }
 
@@ -277,15 +332,20 @@ router.delete('/:userId', requireAuth, async (req: Request, res: Response, next:
     );
 
     if (result.rowCount === 0) {
+      incRequestCount(404, { method: "DELETE", endpoint: "/friendships/:userId" });
       return res.status(404).json({ error: 'Friendship not found' });
     }
 
+    incRequestCount(200, { method: "DELETE", endpoint: "/friendships/:userId" });
     return res.json({ 
       message: 'Friendship deleted successfully',
       deleted: { userId1, userId2 }
     });
   } catch (err) {
+    incRequestCount(500, { method: "DELETE", endpoint: "/friendships/:userId" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
