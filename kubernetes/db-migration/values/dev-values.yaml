@@ -1,4 +1,4 @@
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_db-migration
-  tag: "3dbdd55"
+  tag: "aef151c"
