@@ -1,38 +1,33 @@
-# --- Build Stage ---
+# ---------- Build stage ----------
 FROM node:22-alpine AS builder
-
-# Set workdir to parent level to match tsconfig rootDir
-WORKDIR /build
-
-# Copy leaderboard-service to /build/leaderboard-service
-COPY leaderboard-service/ ./leaderboard-service/
-
-# Copy shared to /build/shared (same level as leaderboard-service)
-COPY shared/ ./shared/
-
-# Install deps from leaderboard-service
-WORKDIR /build/leaderboard-service
-RUN npm ci && npm cache clean --force
-
-# Build from leaderboard-service directory (tsconfig expects shared at ../shared)
-RUN npm run build && npm prune --production
-
-# --- Run Stage ---
-FROM node:22-alpine AS app
 
 WORKDIR /app
 
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S user -u 1001
+# Install dependencies (with dev deps)
+COPY package*.json ./
+RUN npm ci
 
-COPY --from=builder --chown=user:nodejs /build/leaderboard-service/package.json /app/package.json
-COPY --from=builder --chown=user:nodejs /build/leaderboard-service/dist /app/dist
-COPY --from=builder --chown=user:nodejs /build/leaderboard-service/node_modules /app/node_modules
-COPY --from=builder --chown=user:nodejs /build/shared /app/shared
-COPY --from=builder --chown=user:nodejs /build/leaderboard-service/entrypoint.sh /app/entrypoint.sh
+# Copy source and build
+COPY . .
+RUN npm run build
 
-RUN chmod +x /app/entrypoint.sh
+# ---------- Runtime stage ----------
+FROM node:22-alpine
 
-USER user
+WORKDIR /app
 
-ENTRYPOINT [ "/app/entrypoint.sh" ]
+# Create non-root user
+RUN addgroup -S app && adduser -S app -G app
+
+# Copy package.json and install prod deps only
+COPY package*.json /app/
+RUN npm ci --omit=dev
+
+# Copy compiled output
+COPY --from=builder /app/dist /app/dist
+
+USER app
+
+EXPOSE 3005
+
+CMD ["npm", "run", "start"]

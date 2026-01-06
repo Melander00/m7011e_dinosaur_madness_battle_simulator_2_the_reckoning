@@ -1,15 +1,16 @@
-import 'dotenv/config';
-import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import 'dotenv/config';
+import express, { NextFunction, Request, Response } from 'express';
 import morgan from 'morgan';
-import { healthCheck } from './db';
-import { connectRabbitMQ, closeRabbitMQ } from './messaging/rabbitmq';
-import { matchmakingService } from './services/matchmaking-service';
 import { requireAuth } from './auth/keycloak';
+import { healthCheck } from './db';
+import { closeRabbitMQ, connectRabbitMQ } from './messaging/rabbitmq';
+import { matchmakingService } from './services/matchmaking-service';
 
+import { getMetrics } from './monitoring/prometheus';
 import queueRouter from './routes/queue';
 
-const app = express();
+const app = express(); 
 
 // Configuration
 const PORT = process.env.PORT || 3004;
@@ -60,6 +61,13 @@ app.get('/', (req: Request, res: Response) => {
     }
   });
 });
+
+// Metrics endpoint
+app.get("/metrics", async (req, res) => {
+  const data = await getMetrics()
+  res.set("Content-Type", data.contentType)
+  res.end(data.metrics)
+})
 
 // 404 handler
 app.use((req: Request, res: Response) => {

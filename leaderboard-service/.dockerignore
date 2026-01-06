@@ -5,3 +5,9 @@ Dockerfile
 eslint.config.mts
 README.md
 .env
+tests/
+coverage/
+*.test.ts
+jest.config.js
+jest.config.integration.js
+dist

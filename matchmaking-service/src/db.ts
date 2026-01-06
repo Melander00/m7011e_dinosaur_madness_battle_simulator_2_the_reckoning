@@ -2,13 +2,13 @@ import { Pool, QueryResult, QueryResultRow } from 'pg';
 
 // PostgreSQL connection pool
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+//   connectionString: process.env.DATABASE_URL,
   host: process.env.PGHOST,
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
   database: process.env.PGDATABASE,
   port: process.env.PGPORT ? parseInt(process.env.PGPORT, 10) : undefined,
-  ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
+//   ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -33,7 +33,14 @@ export async function query<T extends QueryResultRow = any>(
   const res = await pool.query<T>(text, params);
   const duration = Date.now() - start;
   if (process.env.DB_QUERY_LOG === 'true') {
-    console.log('executed query', { text, duration, rows: res.rowCount });
+    console.log(
+`
+Query: 
+%s
+-> Time: %o ms
+-> Rows: %o
+`, text, duration, res.rowCount)
+    // console.log('executed query', { text, duration, rows: res.rowCount });
   }
   return res;
 }

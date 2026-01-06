@@ -88,9 +88,9 @@ data:
         action: replace
         target_label: kubernetes_name
 
-    # RabbitMQ metrics (internal to monitoring namespace)
+    # RabbitMQ metrics (internal to monitoring namespace) PROD only
     - job_name: 'rabbitmq'
       static_configs:
-      - targets: ['rabbitmq-service-prometheus.rabbitmq.svc.cluster.local:15692']
+      - targets: ['rabbitmq-service-prometheus.prod.svc.cluster.local:15692']
         labels:
           service: 'rabbitmq'

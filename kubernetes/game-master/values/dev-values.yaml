@@ -6,13 +6,15 @@ app:
   port: 8080
 
 # Development domain - change to your assigned domain
-domain: game-master.ltu-m7011e-1.se
+tlsSecret: root-tls
+domain: dev.ltu-m7011e-1.se
+path: /api/game-master
 
 # Email for Let's Encrypt certificates
 email: sammel-2@student.ltu.se
 
 # Environment identifier
-environment: Development
+env: development
 
 # Container image
 image:
@@ -30,13 +32,13 @@ server:
 rabbit:
   username: "admin"
   password: "admin123"
-  host: rabbitmq-service-api.rabbitmq.svc.cluster.local
+  host: rabbitmq-service-api
   port: "5672"
 
 redis:
   username: 
   password: 
-  host: redis-service.dev.svc.cluster.local
+  host: redis-service
   port: "6379"
   db: "1"
 

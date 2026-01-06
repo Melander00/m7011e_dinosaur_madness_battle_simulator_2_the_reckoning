@@ -6,7 +6,7 @@
  * Starting rating: 1000
  */
 
-const K_FACTOR = 32;
+export const K_FACTOR = 32;
 export const STARTING_ELO = 1000;
 
 /**

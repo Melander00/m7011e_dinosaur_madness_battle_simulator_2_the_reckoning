@@ -1,0 +1,7 @@
+# RabbitMQ Configuration
+Image: "rabbitmq:4.2-management"
+
+# RabbitMQ Credentials
+# ⚠️ IMPORTANT: Change these for production!
+RabbitMQUser: "admin"
+RabbitMQPassword: "admin123"

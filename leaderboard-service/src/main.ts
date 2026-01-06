@@ -4,7 +4,11 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import { query } from "./db";
-import { requireAuth } from "../../shared/auth/keycloak";
+import { requireAuth } from "./auth/keycloak";
+import { getMetrics } from "./monitoring/prometheus";
+import { startLeaderboardMatchResultConsumer } from "./rabbitmq-consumer";
+
+
 
 import leaderboardRouter from "./routes/leaderboard";
 
@@ -76,6 +80,13 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEV_ENDPOINTS =
     console.log('[DEV] /dev/seed-rank endpoint enabled for manual testing');
 }
 
+app.get("/metrics", async (req, res) => {
+  const data = await getMetrics();
+  res.set("Content-Type", data.contentType);
+  res.end(data.metrics);
+});
+
+
 // Routes
 app.use('/leaderboard', leaderboardRouter);
 
@@ -111,8 +122,21 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     });
 });
 
-// Start server (DB migrations handled by Flyway in db/ folder)
-app.listen(PORT, () => {
-    console.log(`leaderboard-service listening on http://localhost:${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// Export app for testing
+export { app };
+
+// Start server only if not imported as module
+if (require.main === module) {
+    app.listen(PORT, async () => {
+        console.log(`leaderboard-service listening on http://localhost:${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+        try {
+            await startLeaderboardMatchResultConsumer();
+            console.log("[Leaderboard Service] RabbitMQ consumer started");
+        } catch (err) {
+            console.error("[Leaderboard Service] Failed to start RabbitMQ consumer", err);
+            process.exit(1); // Fail fast if background worker cannot start
+        }
+    });
+}
