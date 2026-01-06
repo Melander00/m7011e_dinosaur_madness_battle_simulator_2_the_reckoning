@@ -4,6 +4,7 @@ import morgan from "morgan";
 import { requireAuth } from "./auth/keycloak";
 import { healthCheck } from "./db";
 import { getMetrics } from "./monitoring/prometheus";
+import { getOpenApiSpecs } from "./openapi/openapi";
 import queueRouter from "./routes/queue";
 
 const app = express();
@@ -61,6 +62,11 @@ app.get("/metrics", async (_req, res) => {
   res.set("Content-Type", data.contentType);
   res.end(data.metrics);
 });
+
+// OpenAPI Specs
+app.get("/openapi", (req, res) => {
+    res.json(getOpenApiSpecs())
+})
 
 // 404
 app.use((_req, res) => {
