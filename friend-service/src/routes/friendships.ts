@@ -1,5 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
+import { requireAuth } from "../auth/keycloak";
+import { gameInviteService } from '../services/game-invite-service';
 
 const router = Router();
 
@@ -19,9 +21,85 @@ interface CountRow {
 }
 
 /**
+ * GET /friendships
+ * Get all friends for authenticated user
+ * Requires valid JWT token
+ */
+router.get('/', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    // Find all friendships where userId matches either userId1 or userId2
+    const { rows } = await query<FriendUser>(
+      `SELECT 
+        CASE 
+          WHEN r.userId1 = $1 THEN r.userId2
+          ELSE r.userId1
+        END as "userId"
+      FROM relationships r
+      WHERE r.userId1 = $1 OR r.userId2 = $1`,
+      [userId]
+    );
+
+    return res.json({ userId, friends: rows, count: rows.length });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * GET /friendships/invite
+ * Get all incoming game invites for authenticated user
+ * Requires valid JWT token
+ */
+router.get('/invite', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    const invites = await gameInviteService.getReceivedInvites(userId);
+    return res.json({ userId, invites, count: invites.length });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * GET /friendships/count
+ * Get friend count for authenticated user
+ * Requires valid JWT token
+ */
+router.get('/count', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    const { rows } = await query<CountRow>(
+      `SELECT COUNT(*) as count 
+       FROM relationships 
+       WHERE userId1 = $1 OR userId2 = $1`,
+      [userId]
+    );
+
+    return res.json({ userId, friendCount: parseInt(rows[0].count, 10) });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
  * GET /friendships/:userId
- * Get all friends for a specific user
- * Returns userIds of all friends
+ * Get all friends for a specific user (public)
  */
 router.get('/:userId', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -49,16 +127,97 @@ router.get('/:userId', async (req: Request, res: Response, next: NextFunction) =
 });
 
 /**
- * POST /friendships
- * Create a new friendship between two users
- * Body: { userId1: string, userId2: string }
+ * POST /friendships/invite
+ * Send a game invite to a friend
+ * Body: { toUserId: string }
+ * Requires valid JWT token
  */
-router.post('/', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/invite', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let { userId1, userId2 } = req.body || {};
+    const fromUserId = req.userId;
+    const { toUserId } = req.body || {};
 
-    if (!userId1 || !userId2) {
-      return res.status(400).json({ error: 'Both userId1 and userId2 are required' });
+    if (!fromUserId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    if (!toUserId) {
+      return res.status(400).json({ error: 'toUserId is required in body' });
+    }
+
+    if (fromUserId === toUserId) {
+      return res.status(400).json({ error: 'Cannot invite yourself' });
+    }
+
+    // Check if toUserId is a friend
+    const { rows } = await query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM relationships 
+       WHERE (userId1 = $1 AND userId2 = $2) OR (userId1 = $2 AND userId2 = $1)`,
+      [fromUserId, toUserId]
+    );
+
+    if (parseInt(rows[0].count, 10) === 0) {
+      return res.status(400).json({ error: 'You can only invite friends to play' });
+    }
+
+    const invite = await gameInviteService.sendInvite(fromUserId, toUserId);
+    return res.status(201).json({
+      message: 'Game invite sent successfully',
+      invite
+    });
+  } catch (err: any) {
+    if (err.message?.includes('already have a pending invite')) {
+      return res.status(409).json({ error: err.message });
+    }
+    return next(err);
+  }
+});
+
+/**
+ * DELETE /friendships/invite/:inviteId
+ * Cancel a sent game invite
+ * Requires valid JWT token
+ */
+router.delete('/invite/:inviteId', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.userId;
+    const { inviteId } = req.params;
+
+    if (!userId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    const cancelled = await gameInviteService.cancelInvite(inviteId, userId);
+    if (!cancelled) {
+      return res.status(404).json({ error: 'Invite not found or already expired' });
+    }
+
+    return res.json({ message: 'Game invite cancelled successfully' });
+  } catch (err: any) {
+    if (err.message?.includes('can only cancel your own')) {
+      return res.status(403).json({ error: err.message });
+    }
+    return next(err);
+  }
+});
+
+/**
+ * POST /friendships
+ * Create a new friendship between authenticated user and another user
+ * Body: { userId: string }
+ * Requires valid JWT token
+ */
+router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId1 = req.userId; // authenticated user
+    const { userId: userId2 } = req.body || {};
+
+    if (!userId1) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    if (!userId2) {
+      return res.status(400).json({ error: 'userId is required in body' });
     }
 
     if (userId1 === userId2) {
@@ -93,16 +252,21 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * DELETE /friendships
- * Remove a friendship between two users
- * Body: { userId1: string, userId2: string }
+ * DELETE /friendships/:userId
+ * Remove a friendship between authenticated user and another user
+ * Requires valid JWT token
  */
-router.delete('/', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/:userId', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId1, userId2 } = req.body || {};
+    const userId1 = req.userId; // authenticated user
+    const userId2 = req.params.userId;
 
-    if (!userId1 || !userId2) {
-      return res.status(400).json({ error: 'Both userId1 and userId2 are required' });
+    if (!userId1) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    if (!userId2) {
+      return res.status(400).json({ error: 'userId is required' });
     }
 
     // Delete friendship (try both orderings since we don't know the order)
@@ -120,30 +284,6 @@ router.delete('/', async (req: Request, res: Response, next: NextFunction) => {
       message: 'Friendship deleted successfully',
       deleted: { userId1, userId2 }
     });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-/**
- * GET /friendships/:userId/count
- * Get friend count for a user
- */
-router.get('/:userId/count', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = req.params.userId;
-    if (!userId) {
-      return res.status(400).json({ error: 'Valid userId is required' });
-    }
-
-    const { rows } = await query<CountRow>(
-      `SELECT COUNT(*) as count 
-       FROM relationships 
-       WHERE userId1 = $1 OR userId2 = $1`,
-      [userId]
-    );
-
-    return res.json({ userId, friendCount: parseInt(rows[0].count, 10) });
   } catch (err) {
     return next(err);
   }

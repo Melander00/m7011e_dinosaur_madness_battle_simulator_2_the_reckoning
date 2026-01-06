@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
+import { requireAuth } from "../auth/keycloak";
 
 const router = Router();
 
@@ -27,14 +28,16 @@ interface RequestRow {
 }
 
 /**
- * GET /requests/incoming/:userId
- * Get all incoming friend requests for a user
+ * GET /requests/incoming
+ * Get all incoming friend requests for authenticated user
+ * Requires valid JWT token
  */
-router.get('/incoming/:userId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/incoming', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = req.params.userId;
+    const userId = req.userId;
+    
     if (!userId) {
-      return res.status(400).json({ error: 'Valid userId is required' });
+      return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     const { rows } = await query<IncomingRequest>(
@@ -53,14 +56,16 @@ router.get('/incoming/:userId', async (req: Request, res: Response, next: NextFu
 });
 
 /**
- * GET /requests/outgoing/:userId
- * Get all outgoing friend requests from a user
+ * GET /requests/outgoing
+ * Get all outgoing friend requests from authenticated user
+ * Requires valid JWT token
  */
-router.get('/outgoing/:userId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/outgoing', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = req.params.userId;
+    const userId = req.userId;
+    
     if (!userId) {
-      return res.status(400).json({ error: 'Valid userId is required' });
+      return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     const { rows } = await query<OutgoingRequest>(
@@ -80,15 +85,21 @@ router.get('/outgoing/:userId', async (req: Request, res: Response, next: NextFu
 
 /**
  * POST /requests
- * Create a new friend request
- * Body: { fromUserId: string, toUserId: string }
+ * Create a new friend request from authenticated user
+ * Body: { toUserId: string }
+ * Requires valid JWT token
  */
-router.post('/', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { fromUserId, toUserId } = req.body || {};
+    const fromUserId = req.userId;
+    const { toUserId } = req.body || {};
 
-    if (!fromUserId || !toUserId) {
-      return res.status(400).json({ error: 'Both fromUserId and toUserId are required' });
+    if (!fromUserId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    if (!toUserId) {
+      return res.status(400).json({ error: 'toUserId is required' });
     }
 
     if (fromUserId === toUserId) {
@@ -148,16 +159,21 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * PUT /requests/accept
+ * PUT /requests/:fromUserId/accept
  * Accept a friend request and create friendship
- * Body: { fromUserId: string, toUserId: string }
+ * Requires valid JWT token
  */
-router.put('/accept', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:fromUserId/accept', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { fromUserId, toUserId } = req.body || {};
+    const toUserId = req.userId; // authenticated user is the recipient
+    const fromUserId = req.params.fromUserId;
     
-    if (!fromUserId || !toUserId) {
-      return res.status(400).json({ error: 'Both fromUserId and toUserId are required' });
+    if (!toUserId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    if (!fromUserId) {
+      return res.status(400).json({ error: 'fromUserId is required' });
     }
 
     // Get the request
@@ -197,16 +213,21 @@ router.put('/accept', async (req: Request, res: Response, next: NextFunction) =>
 });
 
 /**
- * PUT /requests/reject
+ * PUT /requests/:fromUserId/reject
  * Reject a friend request
- * Body: { fromUserId: string, toUserId: string }
+ * Requires valid JWT token
  */
-router.put('/reject', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:fromUserId/reject', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { fromUserId, toUserId } = req.body || {};
+    const toUserId = req.userId; // authenticated user is the recipient
+    const fromUserId = req.params.fromUserId;
     
-    if (!fromUserId || !toUserId) {
-      return res.status(400).json({ error: 'Both fromUserId and toUserId are required' });
+    if (!toUserId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    if (!fromUserId) {
+      return res.status(400).json({ error: 'fromUserId is required' });
     }
 
     const result = await query(
@@ -229,16 +250,21 @@ router.put('/reject', async (req: Request, res: Response, next: NextFunction) =>
 });
 
 /**
- * DELETE /requests
- * Delete/cancel a friend request (can only be done by sender)
- * Body: { fromUserId: string, toUserId: string }
+ * DELETE /requests/:toUserId
+ * Delete/cancel a friend request (authenticated user is sender)
+ * Requires valid JWT token
  */
-router.delete('/', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/:toUserId', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { fromUserId, toUserId } = req.body || {};
+    const fromUserId = req.userId; // authenticated user is the sender
+    const toUserId = req.params.toUserId;
 
-    if (!fromUserId || !toUserId) {
-      return res.status(400).json({ error: 'Both fromUserId and toUserId are required' });
+    if (!fromUserId) {
+      return res.status(500).json({ error: 'User ID not found in token' });
+    }
+
+    if (!toUserId) {
+      return res.status(400).json({ error: 'toUserId is required' });
     }
 
     const result = await query(

@@ -1,0 +1,7 @@
+// tsconfig.dev.json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": true
+  }
+}
