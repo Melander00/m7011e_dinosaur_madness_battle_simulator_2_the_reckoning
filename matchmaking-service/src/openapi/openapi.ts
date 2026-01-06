@@ -4,7 +4,7 @@ const JWT = [{JWT: []}]
 
 const specs: OpenAPIV3_1.Document = {
     openapi: "3.1.0",
-    info: { title: "Game Master API Endpoints", version: "1.0.0", description: "Public endpoints for Game Master service." },
+    info: { title: "Game Master API Endpoints", version: "1.0.0", description: "Public endpoints for matchmaking service." },
     paths: {
         "/queue/join": {
             post: {
