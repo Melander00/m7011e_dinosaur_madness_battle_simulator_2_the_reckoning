@@ -1,0 +1,76 @@
+name: Matchmaking Service CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'matchmaking-service/**'        # Only trigger when matchmaking-service changes
+      - '!kubernetes/**'               # Don't trigger when only k8s files change
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-update-dev:
+    name: Build & Deploy Matchmaking to Dev
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write           # required for committing changes
+      packages: write           # required for pushing to GHCR
+      id-token: write           # required if using OIDC login to registry
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Make the repo name lowercase
+      - name: Set Container Repo Name
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+        env:
+          OWNER: '${{ github.repository_owner }}'
+
+
+      # 3. Log in to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4. Build and push image
+      - name: Build & Push Docker image
+        run: |
+          IMAGE_TAG=$(git rev-parse --short HEAD)
+          IMAGE_NAME=ghcr.io/$OWNER_LC/m7011e_matchmaking-service:${IMAGE_TAG}
+
+          echo "Building image: $IMAGE_NAME"
+          docker build -t $IMAGE_NAME ./matchmaking-service
+          docker push $IMAGE_NAME
+
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Update local git repo
+        run: |
+          git pull
+
+
+      # 5. Update Helm values for dev
+      - name: Update dev environment values
+        run: |
+          sed -i "s/tag:.*/tag: \"${IMAGE_TAG}\"/" kubernetes/matchmaking-service/values/dev-values.yaml
+
+      # 6. Commit and push the updated values file
+      - name: Commit changes
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git pull
+          git add kubernetes/matchmaking-service/values/dev-values.yaml
+          git commit -m "Update matchmaking-service image to ${IMAGE_TAG}"
+          git push

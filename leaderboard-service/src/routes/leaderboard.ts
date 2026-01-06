@@ -1,113 +1,148 @@
-import express from 'express';
-import { requireAuth } from '../../../shared/auth/keycloak';
-import * as rankRepo from '../repositories/rankRepository';
+import express from "express";
+import { requireAuth } from "../auth/keycloak";
+import * as rankRepo from "../repositories/rankRepository";
+import {
+  createRequestDuration,
+  incRequestCount,
+  PromProps,
+} from "../monitoring/prometheus";
 
 const router = express.Router();
 
 /**
  * GET /leaderboard/top?limit=10
- * Get top N players ordered by rankedPoints DESC
- * Default limit: 10, Max limit: 100
- * Public endpoint (no auth required)
+ * Public endpoint
  */
-router.get('/top', async (req, res, next) => {
+router.get("/top", async (req, res, next) => {
+  const props: PromProps = {
+    method: "GET",
+    endpoint: "/leaderboard/top",
+  };
+  const timer = createRequestDuration(props);
+
   try {
-    const limit = parseInt(req.query.limit as string, 10) || 10;
-    
-    if (isNaN(limit) || limit < 1) {
-      return res.status(400).json({ error: 'Invalid limit parameter' });
-    }
-    
+    const limitParam = parseInt(req.query.limit as string, 10);
+    const limit = Math.min(
+      isNaN(limitParam) || limitParam < 1 ? 10 : limitParam,
+      100,
+    );
+
     const rows = await rankRepo.getTop(limit);
-    
+
+    timer.end();
+    incRequestCount(200, props);
+
     return res.json({
-      leaderboard: rows.map(r => ({
+      leaderboard: rows.map((r) => ({
         rank: r.rank,
         userId: r.userid,
-        rankedPoints: r.rankedpoints
+        rankedPoints: r.rankedpoints,
       })),
-      count: rows.length
+      count: rows.length,
     });
   } catch (err) {
+    incRequestCount(500, props);
     return next(err);
   }
 });
 
 /**
  * GET /leaderboard/me
- * Get authenticated user's rank and points
- * Requires valid JWT token
- * Returns 404 if user not found in ranks table
+ * Authenticated endpoint
  */
-router.get('/me', requireAuth, async (req, res, next) => {
+router.get("/me", requireAuth, async (req, res, next) => {
+  const props: PromProps = {
+    method: "GET",
+    endpoint: "/leaderboard/me",
+  };
+  const timer = createRequestDuration(props);
+
   try {
-    const userId = req.userId; // Keycloak sub from JWT
-    
+    const userId = req.userId;
+
     if (!userId) {
-      return res.status(500).json({ error: 'User ID not found in token' });
+      incRequestCount(500, props);
+      return res.status(500).json({ error: "User ID not found in token" });
     }
-    
+
     const result = await rankRepo.getMe(userId);
-    
+
     if (!result) {
-      return res.status(404).json({ 
-        error: 'User not found in leaderboard',
-        userId 
+      timer.end();
+      incRequestCount(404, props);
+      return res.status(404).json({
+        error: "User not found in leaderboard",
+        userId,
       });
     }
-    
+
+    timer.end();
+    incRequestCount(200, props);
+
     return res.json({
       userId: result.userid,
       rank: result.rank,
-      rankedPoints: result.rankedpoints
+      rankedPoints: result.rankedpoints,
     });
   } catch (err) {
+    incRequestCount(500, props);
     return next(err);
   }
 });
 
 /**
  * GET /leaderboard/nearby?range=5
- * Get players near the authenticated user's rank
- * Default range: 5 (5 above and 5 below), Max range: 50
- * Requires valid JWT token
- * Returns players ranked near the user for better context
+ * Authenticated endpoint
  */
-router.get('/nearby', requireAuth, async (req, res, next) => {
+router.get("/nearby", requireAuth, async (req, res, next) => {
+  const props: PromProps = {
+    method: "GET",
+    endpoint: "/leaderboard/nearby",
+  };
+  const timer = createRequestDuration(props);
+
   try {
-    const userId = req.userId; // Keycloak sub from JWT
-    
+    const userId = req.userId;
+
     if (!userId) {
-      return res.status(500).json({ error: 'User ID not found in token' });
+      incRequestCount(500, props);
+      return res.status(500).json({ error: "User ID not found in token" });
     }
-    
-    const range = parseInt(req.query.range as string, 10) || 5;
-    
-    if (isNaN(range) || range < 1) {
-      return res.status(400).json({ error: 'Invalid range parameter' });
-    }
-    
+
+    const rangeParam = parseInt(req.query.range as string, 10);
+    const range = Math.min(
+      isNaN(rangeParam) || rangeParam < 1 ? 5 : rangeParam,
+      50,
+    );
+
     const rows = await rankRepo.getNearby(userId, range);
-    
+
     if (rows.length === 0) {
-      return res.status(404).json({ 
-        error: 'User not found in leaderboard',
-        userId 
+      timer.end();
+      incRequestCount(404, props);
+      return res.status(404).json({
+        error: "User not found in leaderboard",
+        userId,
       });
     }
-    
+
+    timer.end();
+    incRequestCount(200, props);
+
     return res.json({
-      nearby: rows.map(r => ({
+      nearby: rows.map((r) => ({
         rank: r.rank,
         userId: r.userid,
         rankedPoints: r.rankedpoints,
-        isCurrentUser: r.userid === userId
+        isCurrentUser: r.userid === userId,
       })),
-      count: rows.length
+      count: rows.length,
     });
   } catch (err) {
+    incRequestCount(500, props);
     return next(err);
   }
 });
 
 export default router;
+

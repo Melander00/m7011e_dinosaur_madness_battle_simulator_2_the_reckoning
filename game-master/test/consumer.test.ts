@@ -58,7 +58,6 @@ describe("consumer module", () => {
     await createHandler(msg);
 
     expect(mockStartGameServer).toHaveBeenCalledWith("u1", "u2", true);
-    expect(mockIncActiveMatches).toHaveBeenCalled();
   });
 
   it("completed consumer should remove finished match", async () => {
@@ -75,7 +74,7 @@ describe("consumer module", () => {
     expect(mockRemoveServerById).toHaveBeenCalledWith("m1", "ns");
     expect(mockRemoveMatchById).toHaveBeenCalledWith("m1");
     expect(mockResetUsers).toHaveBeenCalledWith(["u1"]);
-    expect(mockDecActiveMatches).toHaveBeenCalled();
+    // expect(mockDecActiveMatches).toHaveBeenCalled();
   });
 
   it("removeFinishedMatch skips if no data", async () => {

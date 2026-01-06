@@ -1,0 +1,28 @@
+# Development Environment Configuration
+
+app:
+  name: user
+  replicas: 1
+  port: 3002
+
+
+# Development domain - change to your assigned domain
+tlsSecret: root-tls
+domain: dev.ltu-m7011e-1.se
+path: /api/user
+
+# Email for Let's Encrypt certificates
+email: wilhgg-2@student.ltu.se
+
+# Environment identifier
+env: development
+
+# Container image
+image:
+  repository: ghcr.io/melander00/m7011e_user-service
+  tag: "ff1cf81"
+
+# Ingress configuration
+ingress:
+  # Use staging for testing to avoid rate limits
+  certIssuer: letsencrypt-staging

@@ -1,150 +1,132 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { query } from '../db';
+import express from "express";
+import { requireAuth } from "../auth/keycloak";
+import * as userRepo from "../repositories/userRepository";
+import { createRequestDuration, incRequestCount } from "../monitoring/prometheus";
 
-const router = Router();
+const router = express.Router();
 
-interface User {
-  userId: string;
-  quote: string | null;
-  profilePicture: Buffer | null;
-  profileBanner: Buffer | null;
+export function isUuid(v: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 }
 
 /**
- * GET /users
- * Get all users (with optional limit)
- * Query params: ?limit=50
+ * POST /users/me
+ * Ensure user exists (upsert)
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+export async function postUsersMe(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const timer = createRequestDuration({ method: "POST", endpoint: "/users/me" });
+
   try {
-    const limit = Math.min(parseInt((req.query.limit as string) || '50', 10), 100);
+    const userId = req.userId;
+    if (!userId || !isUuid(userId)) {
+      incRequestCount(500, { method: "POST", endpoint: "/users/me" });
+      return res.status(500).json({ error: "Invalid userId in token" });
+    }
 
-    const { rows } = await query<User>(
-      'SELECT userId, quote FROM users ORDER BY userId LIMIT $1',
-      [limit]
-    );
+    const username = req.user?.preferred_username ?? null;
 
-    return res.json({ users: rows, count: rows.length });
+    await userRepo.upsertUser(userId, username);
+
+    incRequestCount(200, { method: "POST", endpoint: "/users/me" });
+    return res.status(200).json({ userId, username });
   } catch (err) {
+    incRequestCount(500, { method: "POST", endpoint: "/users/me" });
     return next(err);
+  } finally {
+    timer.end();
   }
-});
+}
+
+router.post("/me", requireAuth, postUsersMe);
 
 /**
- * GET /users/:id
- * Get a specific user by UUID
+ * GET /users/me
+ * Return my profile
+ * DEV: auto-create user if missing
  */
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+export async function getUsersMe(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const timer = createRequestDuration({ method: "GET", endpoint: "/users/me" });
+
   try {
-    const userId = req.params.id;
-    if (!userId) {
-      return res.status(400).json({ error: 'Valid user ID is required' });
+    const userId = req.userId;
+    if (!userId || !isUuid(userId)) {
+      incRequestCount(500, { method: "GET", endpoint: "/users/me" });
+      return res.status(500).json({ error: "Invalid userId in token" });
     }
 
-    const { rows } = await query<User>(
-      'SELECT userId, quote FROM users WHERE userId = $1',
-      [userId]
-    );
+    let user = await userRepo.getUserById(userId);
 
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    /**
+     * PROD-SAFE lazy user provisioning
+     * requireAuth already verified the JWT
+     */
+    if (!user) {
+      const username = req.user?.preferred_username ?? null;
+      await userRepo.upsertUser(userId, username);
+      user = await userRepo.getUserById(userId);
     }
 
-    return res.json({ user: rows[0] });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-/**
- * POST /users
- * Create a new user
- * Body: { userId: string, quote?: string }
- */
-router.post('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { userId, quote } = req.body || {};
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+    if (!user) {
+      incRequestCount(404, { method: "GET", endpoint: "/users/me" });
+      return res.status(404).json({ error: "User not found", userId });
     }
 
-    const { rows } = await query<User>(
-      'INSERT INTO users (userId, quote) VALUES ($1, $2) RETURNING userId, quote',
-      [userId, quote || null]
-    );
-
-    return res.status(201).json({ 
-      message: 'User created successfully',
-      user: rows[0]
-    });
-  } catch (err: any) {
-    if (err.code === '23505') { // Unique constraint violation
-      return res.status(400).json({ error: 'User already exists' });
-    }
-    return next(err);
-  }
-});
-
-/**
- * PUT /users/:id
- * Update a user's quote
- * Body: { quote: string }
- */
-router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = req.params.id;
-    const { quote } = req.body || {};
-
-    if (!userId) {
-      return res.status(400).json({ error: 'Valid user ID is required' });
-    }
-
-    const result = await query<User>(
-      'UPDATE users SET quote = $1 WHERE userId = $2 RETURNING userId, quote',
-      [quote || null, userId]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    return res.json({ 
-      message: 'User updated successfully',
-      user: result.rows[0]
+    incRequestCount(200, { method: "GET", endpoint: "/users/me" });
+    return res.json({
+      userId: user.userid,
+      username: user.username,
+      quote: user.quote,
     });
   } catch (err) {
+    incRequestCount(500, { method: "GET", endpoint: "/users/me" });
     return next(err);
+  } finally {
+    timer.end();
   }
-});
+}
+
+router.get("/me", requireAuth, getUsersMe);
 
 /**
- * DELETE /users/:id
- * Delete a user (cascades to relationships and requests)
+ * GET /users/:userId
+ * Public lookup
  */
-router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+export async function getPublicUserById(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
+  const timer = createRequestDuration({ method: "GET", endpoint: "/users/:userId" });
+
   try {
-    const userId = req.params.id;
-    if (!userId) {
-      return res.status(400).json({ error: 'Valid user ID is required' });
+    const { userId } = req.params;
+
+    if (!isUuid(userId)) {
+      incRequestCount(400, { method: "GET", endpoint: "/users/:userId" });
+      return res.status(400).json({ error: "Invalid userId" });
     }
 
-    const result = await query<{ userId: string }>(
-      'DELETE FROM users WHERE userId = $1 RETURNING userId',
-      [userId]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    const user = await userRepo.getUserById(userId);
+    if (!user) {
+      incRequestCount(404, { method: "GET", endpoint: "/users/:userId" });
+      return res.status(404).json({ error: "User not found", userId });
     }
 
-    return res.json({ 
-      message: 'User deleted successfully (including all relationships and requests)',
-      userId: result.rows[0].userId
+    incRequestCount(200, { method: "GET", endpoint: "/users/:userId" });
+    return res.json({
+      userId: user.userid,
+      username: user.username,
+      quote: user.quote,
     });
   } catch (err) {
+    incRequestCount(500, { method: "GET", endpoint: "/users/:userId" });
     return next(err);
+  } finally {
+    timer.end();
   }
-});
+}
+
+router.get("/:userId", getPublicUserById);
 
 export default router;
+

@@ -67,7 +67,8 @@ const io = new Server(server, {
     cors: {
         origin: [
             "http://localhost:5173",
-            "https://ltu-m7011e-1.se"
+            "https://ltu-m7011e-1.se",
+            "https://dev.ltu-m7011e-1.se",
         ],
         credentials: true,
     },

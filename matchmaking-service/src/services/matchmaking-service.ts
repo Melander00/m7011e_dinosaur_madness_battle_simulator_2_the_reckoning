@@ -2,7 +2,7 @@ import { query } from '../db';
 import { publishMatchFound } from '../messaging/rabbitmq';
 
 interface QueuedPlayer {
-  userId: string;
+  userid: string;
   elo: number;
   queue_start_time: Date;
 }
@@ -44,11 +44,20 @@ export class MatchmakingService {
   async getQueuePosition(userId: string): Promise<number | null> {
     try {
       const result = await query<{ position: number }>(
-        `SELECT COUNT(*) + 1 as position
-         FROM matchmaking_queue
-         WHERE queue_start_time < (
-           SELECT queue_start_time FROM matchmaking_queue WHERE userId = $1
-         )`,
+        `SELECT CASE
+         WHEN EXISTS (
+             SELECT 1
+             FROM matchmaking_queue
+             WHERE userId = $1
+         )
+         THEN (
+             SELECT COUNT(*) + 1
+             FROM matchmaking_queue q
+             JOIN matchmaking_queue me ON me.userId = $1
+             WHERE q.queue_start_time < me.queue_start_time
+         )
+         ELSE NULL
+       END AS position;`,
         [userId]
       );
       return result.rows[0]?.position || null;
@@ -89,7 +98,7 @@ export class MatchmakingService {
          ORDER BY ABS(elo - $4) ASC
          LIMIT 1`,
         [
-          longestWaiting.userId,
+          longestWaiting.userid,
           longestWaiting.elo - eloDifference,
           longestWaiting.elo + eloDifference,
           longestWaiting.elo
@@ -97,7 +106,7 @@ export class MatchmakingService {
       );
 
       if (matchResult.rows.length === 0) {
-        console.log(`No suitable match found for user ${longestWaiting.userId} (elo: ${longestWaiting.elo})`);
+        console.log(`No suitable match found for user ${longestWaiting.userid} (elo: ${longestWaiting.elo})`);
         return;
       }
 
@@ -106,16 +115,16 @@ export class MatchmakingService {
       // Remove both players from queue
       await query(
         `DELETE FROM matchmaking_queue WHERE userId IN ($1, $2)`,
-        [longestWaiting.userId, opponent.userId]
+        [longestWaiting.userid, opponent.userid]
       );
 
       console.log(
-        `Match found! ${longestWaiting.userId} (elo: ${longestWaiting.elo}) vs ` +
-        `${opponent.userId} (elo: ${opponent.elo}), elo diff: ${Math.abs(longestWaiting.elo - opponent.elo)}`
+        `Match found! ${longestWaiting.userid} (elo: ${longestWaiting.elo}) vs ` +
+        `${opponent.userid} (elo: ${opponent.elo}), elo diff: ${Math.abs(longestWaiting.elo - opponent.elo)}`
       );
 
       // Publish match to game-master via RabbitMQ
-      await publishMatchFound(longestWaiting.userId, opponent.userId);
+      await publishMatchFound(longestWaiting.userid, opponent.userid, true);
 
     } catch (error) {
       console.error('Error in findMatch:', error);
@@ -160,6 +169,20 @@ export class MatchmakingService {
       return { totalPlayers: 0, averageWaitTime: 0 };
     }
   }
+}
+
+export async function getAmountInQueue() {
+    try {
+        const result = await query<{ count: string }>(
+            `SELECT COUNT(*) FROM matchmaking_queue`
+        );
+
+        if(result.rows.length === 0) return 0;
+        return parseInt(result.rows[0].count || "0") || 0
+        
+    } catch {
+        return 0;
+    }
 }
 
 export const matchmakingService = new MatchmakingService();

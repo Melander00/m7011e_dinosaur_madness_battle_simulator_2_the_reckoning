@@ -5,7 +5,7 @@ export type MatchDomainResponse = {
     subpath: string;
 };
 
-const DOMAIN_ENDPOINT = import.meta.env.DEV ? "http://localhost:8080/match" : "https://game-master.ltu-m7011e-1.se/match"
+const DOMAIN_ENDPOINT = import.meta.env.DEV ? "http://localhost:8080/match" : "/api/game-master/match"
 
 export async function getMatchDomain(token: string): Promise<MatchDomainResponse> {
     const body = await req<MatchDomainResponse>(DOMAIN_ENDPOINT, {

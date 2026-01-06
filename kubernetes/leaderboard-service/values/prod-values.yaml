@@ -1,24 +1,34 @@
+# Development Environment Configuration
+
 app:
   name: leaderboard
   replicas: 1
   port: 3005
 
 # Development domain - change to your assigned domain
-domain: leaderboard.ltu-m7011e-1.se
+tlsSecret: root-tls
+domain: ltu-m7011e-1.se
+path: /api/leaderboard
 
 # Email for Let's Encrypt certificates
-email: johan.kristiansson@ltu.se
+email: irmpal-1@student.ltu.se
 
 # Environment identifier
-environment: Production
+env: production
 
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_leaderboard-service
-  tag: 0f0cb39
-
+  tag: "40a0e58"
 
 # Ingress configuration
 ingress:
   # Use staging for testing to avoid rate limits
-  certIssuer: letsencrypt-staging
+  certIssuer: letsencrypt-prod
+
+
+rabbit:
+  username: "admin"
+  password: "admin123"
+  host: rabbitmq-service-api
+  port: "5672"

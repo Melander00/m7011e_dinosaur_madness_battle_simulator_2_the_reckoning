@@ -1,0 +1,35 @@
+# Development Environment Configuration
+
+app:
+  name: matchmaking
+  replicas: 1
+  port: 3004
+
+
+# Development domain - change to your assigned domain
+tlsSecret: root-tls
+domain: ltu-m7011e-1.se
+path: /api/matchmaking
+
+# Email for Let's Encrypt certificates
+email: wilhgg-2@student.ltu.se
+
+# Environment identifier
+env: production
+
+# Container image
+image:
+  repository: ghcr.io/melander00/m7011e_matchmaking-service
+  tag: "117c072"
+
+# Ingress configuration
+ingress:
+  # Use staging for testing to avoid rate limits
+  certIssuer: letsencrypt-prod
+
+
+rabbit:
+  username: "admin"
+  password: "admin123"
+  host: rabbitmq-service-api
+  port: "5672"

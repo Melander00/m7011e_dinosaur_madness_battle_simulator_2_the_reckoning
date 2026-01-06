@@ -7,135 +7,160 @@ import { Connection } from "rabbitmq-client";
 import { calculateELO, STARTING_ELO } from "./elo";
 import { query } from "./db";
 
-const RABBITMQ_HOST = process.env.RABBITMQ_URL || "amqp://admin:admin123@localhost:5672";
+const RABBITMQ_HOST =
+  process.env.RABBITMQ_URL || "amqp://admin:admin123@localhost:5672";
+
 const LEADERBOARD_MATCH_RESULTS_QUEUE = "leaderboard-match-results";
 const MATCH_EVENTS_EXCHANGE = "match-events";
 
-interface MatchResultMessage {
-    winnerId: string;
-    loserId: string;
-    matchId?: string;
-    timestamp?: string;
+export interface MatchResultMessage {
+  winnerId: string;
+  loserId: string;
+  matchId: string;
+  timestamp: number;
+  ranked: boolean;
 }
 
 /**
- * Initialize RabbitMQ connection and start consuming match results for leaderboard
+ * Initialize RabbitMQ connection and start consuming match results
+ * Consumer is created ONLY after connection is established
  */
 export async function startLeaderboardMatchResultConsumer() {
-    try {
-        const rabbit = new Connection(RABBITMQ_HOST);
+  const rabbit = new Connection(RABBITMQ_HOST);
 
-        rabbit.on("error", (err: any) => {
-            console.error(`RabbitMQ Error: ${err}`);
-        });
+  rabbit.on("error", (err: any) => {
+    console.error("[Leaderboard Service] RabbitMQ Error:", err);
+  });
 
-        rabbit.on("connection", () => {
-            console.log("RabbitMQ connection (re)established");
-        });
+  rabbit.on("connection", () => {
+    console.log("[Leaderboard Service] RabbitMQ connected");
 
-        // Create consumer for match results
-        const consumer = rabbit.createConsumer({
-            queue: LEADERBOARD_MATCH_RESULTS_QUEUE,
-            queueOptions: {
-                durable: true, // Survive broker restarts
-            },
-            qos: {
-                prefetchCount: 1 // Process one message at a time
-            },
-            exchanges: [
-                {
-                    exchange: MATCH_EVENTS_EXCHANGE,
-                    type: 'topic'
-                }
-            ],
-            queueBindings: [
-                {
-                    exchange: MATCH_EVENTS_EXCHANGE,
-                    routingKey: 'match.result.*' // Listen for all match.result.* events
-                }
-            ],
-        }, async (msg: any) => {
-            try {
-                const body = msg.body as MatchResultMessage;
-                console.log(`[Leaderboard Service] Processing match result: Winner=${body.winnerId}, Loser=${body.loserId}`);
-                
-                await processLeaderboardMatchResult(body);
-                
-                console.log(`[Leaderboard Service] Successfully processed match result for ${body.winnerId} vs ${body.loserId}`);
-            } catch (error) {
-                console.error("Error processing match result:", error);
-                // Message will be requeued if not acknowledged
-                throw error;
-            }
-        });
+    const consumer = rabbit.createConsumer(
+      {
+        queue: LEADERBOARD_MATCH_RESULTS_QUEUE,
+        queueOptions: {
+          durable: true,
+        },
+        qos: {
+          prefetchCount: 1,
+        },
+        exchanges: [
+          {
+            exchange: MATCH_EVENTS_EXCHANGE,
+            type: "topic",
+          },
+        ],
+        queueBindings: [
+          {
+            exchange: MATCH_EVENTS_EXCHANGE,
+            routingKey: "match.result.*",
+          },
+        ],
+      },
+      async (msg: any) => {
+        try {
+          const body = msg.body as MatchResultMessage;
 
-        consumer.on("error", (err: any) => {
-            console.error(`Consumer Error: ${err}`);
-        });
+          console.log(
+            `[Leaderboard Service] Processing match result: Winner=${body.winnerId}, Loser=${body.loserId}, Ranked=${body.ranked}`
+          );
 
-        console.log(`[Leaderboard Service] Started consuming from queue: ${LEADERBOARD_MATCH_RESULTS_QUEUE}`);
+          // Only ranked matches affect leaderboard
+          if (!body.ranked) {
+            console.log(
+              `[Leaderboard Service] Skipping unranked match: ${body.matchId}`
+            );
+            return;
+          }
 
-        // Graceful shutdown
-        const shutdown = async () => {
-            console.log("[Leaderboard Service] Shutting down RabbitMQ consumer...");
-            await consumer.close();
-            await rabbit.close();
-            console.log("[Leaderboard Service] RabbitMQ consumer shut down successfully");
-        };
+          await processLeaderboardMatchResult(body);
 
-        process.on('SIGINT', shutdown);
-        process.on('SIGTERM', shutdown);
+          console.log(
+            `[Leaderboard Service] Successfully processed match ${body.matchId}`
+          );
+        } catch (error) {
+          console.error(
+            "[Leaderboard Service] Error processing match result:",
+            error
+          );
+          throw error; // causes requeue
+        }
+      }
+    );
 
-        return { rabbit, consumer, shutdown };
-    } catch (error) {
-        console.error("Failed to start RabbitMQ consumer:", error);
-        throw error;
-    }
+    consumer.on("error", (err: any) => {
+      console.error("[Leaderboard Service] Consumer Error:", err);
+    });
+
+    console.log(
+      `[Leaderboard Service] Started consuming from queue: ${LEADERBOARD_MATCH_RESULTS_QUEUE}`
+    );
+
+    const shutdown = async () => {
+      console.log("[Leaderboard Service] Shutting down RabbitMQ consumer...");
+      await consumer.close();
+      await rabbit.close();
+      console.log("[Leaderboard Service] RabbitMQ consumer shut down");
+    };
+
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+  });
+
+  return rabbit;
 }
 
 /**
- * Process a match result message and update ELO ratings in leaderboard
+ * Process a match result message and update ELO ratings
  */
-async function processLeaderboardMatchResult(message: MatchResultMessage): Promise<void> {
-    const { winnerId, loserId } = message;
+export async function processLeaderboardMatchResult(
+  message: MatchResultMessage
+): Promise<void> {
+  const { winnerId, loserId, matchId, ranked } = message;
 
-    if (!winnerId || !loserId) {
-        throw new Error('Invalid match result: winnerId and loserId are required');
-    }
+  if (!winnerId || !loserId) {
+    throw new Error("Invalid match result: winnerId and loserId required");
+  }
 
-    if (winnerId === loserId) {
-        throw new Error('Invalid match result: Winner and loser cannot be the same player');
-    }
+  if (winnerId === loserId) {
+    throw new Error("Invalid match result: winner and loser cannot be same");
+  }
 
-    // Get current ratings from DB or use starting ELO for new players
-    const { rows } = await query(
-        'SELECT userid, rankedpoints FROM ranks WHERE userid = ANY($1::uuid[])',
-        [[winnerId, loserId]]
-    );
-    
-    const ratingsMap = new Map<string, number>(rows.map((r: any) => [r.userid, r.rankedpoints]));
-    const winnerCurrentRating = ratingsMap.get(winnerId) ?? STARTING_ELO;
-    const loserCurrentRating = ratingsMap.get(loserId) ?? STARTING_ELO;
-    
-    // Calculate new ELO ratings
-    const { newWinnerRating, newLoserRating } = calculateELO(winnerCurrentRating, loserCurrentRating);
-    
-    // Upsert winner rating
-    await query(
-        `INSERT INTO ranks (userid, rankedpoints) 
-         VALUES ($1, $2)
-         ON CONFLICT (userid) DO UPDATE SET rankedpoints = $2`,
-        [winnerId, newWinnerRating]
-    );
-    
-    // Upsert loser rating
-    await query(
-        `INSERT INTO ranks (userid, rankedpoints) 
-         VALUES ($1, $2)
-         ON CONFLICT (userid) DO UPDATE SET rankedpoints = $2`,
-        [loserId, newLoserRating]
-    );
-    
-    console.log(`[Leaderboard Service] Match result received: ${winnerId} defeated ${loserId}`);
-    console.log(`[Leaderboard Service] Updated ELO: Winner ${winnerCurrentRating} → ${newWinnerRating}, Loser ${loserCurrentRating} → ${newLoserRating}`);
+  if (!ranked) return;
+
+  const { rows } = await query(
+    "SELECT userid, rankedpoints FROM ranks WHERE userid = ANY($1::uuid[])",
+    [[winnerId, loserId]]
+  );
+
+  const ratings = new Map<string, number>(
+    rows.map((r: any) => [r.userid, r.rankedpoints])
+  );
+
+  const winnerRating = ratings.get(winnerId) ?? STARTING_ELO;
+  const loserRating = ratings.get(loserId) ?? STARTING_ELO;
+
+  const { newWinnerRating, newLoserRating } = calculateELO(
+    winnerRating,
+    loserRating
+  );
+
+  await query(
+    `INSERT INTO ranks (userid, rankedpoints)
+     VALUES ($1, $2)
+     ON CONFLICT (userid) DO UPDATE SET rankedpoints = $2`,
+    [winnerId, newWinnerRating]
+  );
+
+  await query(
+    `INSERT INTO ranks (userid, rankedpoints)
+     VALUES ($1, $2)
+     ON CONFLICT (userid) DO UPDATE SET rankedpoints = $2`,
+    [loserId, newLoserRating]
+  );
+
+  console.log(
+    `[Leaderboard Service] ELO updated: ${winnerId} ${winnerRating}→${newWinnerRating}, ${loserId} ${loserRating}→${newLoserRating}`
+  );
 }
+

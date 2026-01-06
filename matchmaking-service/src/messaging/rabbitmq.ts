@@ -6,7 +6,7 @@
 import { Connection, Publisher } from "rabbitmq-client";
 
 const RABBITMQ_HOST = process.env.RABBITMQ_URL || "amqp://admin:admin123@localhost:5672";
-const GAME_EVENTS_EXCHANGE = "game-events";
+const GAME_EVENTS_EXCHANGE = "match-events";
 
 let rabbit: Connection | null = null;
 let matchPublisher: Publisher | null = null;
@@ -30,7 +30,7 @@ export async function connectRabbitMQ(): Promise<void> {
     matchPublisher = rabbit.createPublisher({
       confirm: true,
       exchanges: [
-        { exchange: GAME_EVENTS_EXCHANGE, type: 'topic', durable: true }
+        { exchange: GAME_EVENTS_EXCHANGE, type: 'topic' }
       ]
     });
 
@@ -41,25 +41,28 @@ export async function connectRabbitMQ(): Promise<void> {
   }
 }
 
+type CreateMatchMessage = {
+    user1: string;
+    user2: string;
+    ranked?: boolean;
+};
+
 /**
  * Publish match found event when two players are paired
  */
-export async function publishMatchFound(player1Id: string, player2Id: string): Promise<void> {
+export async function publishMatchFound(player1Id: string, player2Id: string, ranked: boolean = false): Promise<void> {
   if (!matchPublisher) {
     throw new Error('RabbitMQ publisher not initialized');
   }
 
-  const message = {
-    type: 'MATCH_FOUND',
-    timestamp: new Date().toISOString(),
-    match: {
-      player1: player1Id,
-      player2: player2Id
-    }
+  const message: CreateMatchMessage = {
+    user1: player1Id,
+    user2: player2Id,
+    ranked: ranked
   };
 
   await matchPublisher.send(
-    { exchange: GAME_EVENTS_EXCHANGE, routingKey: 'match.found' },
+    { exchange: GAME_EVENTS_EXCHANGE, routingKey: 'match.create.new' },
     message
   );
 

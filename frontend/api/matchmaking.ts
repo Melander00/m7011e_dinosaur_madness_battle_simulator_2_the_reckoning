@@ -1,5 +1,3 @@
-import console from "console";
-
 async function req(endpoint: string, jwt: string, options?: RequestInit | undefined) {
     const res = await fetch(endpoint, {
         headers: {
