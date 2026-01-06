@@ -17,7 +17,7 @@ environment: Development
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_frontend
-  tag: "02b9207"
+  tag: "db13c7f"
 
 # Ingress configuration
 ingress:
