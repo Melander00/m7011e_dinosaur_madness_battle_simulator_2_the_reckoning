@@ -36,7 +36,10 @@ type RequestsResponse = {
 export type FriendRequest = { userId: string; status: number };
 
 function mapFriend(f: BackendFriend): Friend {
-  const id = f.userId ?? (typeof f.userID === "number" ? String(f.userID) : f.userID);
+  const id =
+    f.userId ??
+    (typeof f.userID === "number" ? String(f.userID) : f.userID);
+
   const safeId = id ?? "";
 
   return {
@@ -49,31 +52,59 @@ function mapFriend(f: BackendFriend): Friend {
  * FINAL frontend API
  * Backend mapping happens HERE, nowhere else.
  */
-export async function getFriends(userId: string, token?: string): Promise<Friend[]> {
-  const path = token ? "/friendships" : `/friendships/${userId}`;
-  const res = await fetchJson<FriendsResponse>(path, token ? { token } : undefined);
+export async function getFriends(
+  userId: string,
+  token?: string
+): Promise<Friend[]> {
+  // FIX: route through backend API, not frontend
+  const path = token
+    ? "/api/friendships"
+    : `/api/friendships/${userId}`;
+
+  const res = await fetchJson<FriendsResponse>(
+    path,
+    token ? { token } : undefined
+  );
 
   return res.friends.map(mapFriend);
 }
 
-export async function getIncomingRequests(token: string): Promise<FriendRequest[]> {
-  const res = await fetchJson<RequestsResponse>("/requests/incoming", { token });
+export async function getIncomingRequests(
+  token: string
+): Promise<FriendRequest[]> {
+  // FIX: add /api prefix
+  const res = await fetchJson<RequestsResponse>(
+    "/api/requests/incoming",
+    { token }
+  );
+
   return res.requests
     .map((req) => req.fromUserId ?? "")
     .filter(Boolean)
     .map((userId) => ({ userId, status: 0 }));
 }
 
-export async function getOutgoingRequests(token: string): Promise<FriendRequest[]> {
-  const res = await fetchJson<RequestsResponse>("/requests/outgoing", { token });
+export async function getOutgoingRequests(
+  token: string
+): Promise<FriendRequest[]> {
+  // FIX: add /api prefix
+  const res = await fetchJson<RequestsResponse>(
+    "/api/requests/outgoing",
+    { token }
+  );
+
   return res.requests
     .map((req) => req.toUserId ?? "")
     .filter(Boolean)
     .map((userId) => ({ userId, status: 0 }));
 }
 
-export async function sendFriendRequest(token: string, toUserId: string) {
-  return fetchJson("/requests", {
+export async function sendFriendRequest(
+  token: string,
+  toUserId: string
+) {
+  // FIX: add /api prefix
+  return fetchJson("/api/requests", {
     method: "POST",
     token,
     headers: { "Content-Type": "application/json" },
@@ -81,7 +112,12 @@ export async function sendFriendRequest(token: string, toUserId: string) {
   });
 }
 
-export async function respondToRequest(token: string, fromUserId: string, action: "accept" | "reject") {
-  const path = `/requests/${fromUserId}/${action}`;
+export async function respondToRequest(
+  token: string,
+  fromUserId: string,
+  action: "accept" | "reject"
+) {
+  // FIX: add /api prefix
+  const path = `/api/requests/${fromUserId}/${action}`;
   return fetchJson(path, { method: "PUT", token });
 }
