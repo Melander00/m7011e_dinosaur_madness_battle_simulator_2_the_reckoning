@@ -1,81 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "~/keycloak/useAuth";
-import { getUsersMe } from "~/api/user";
-
-/* -----------------------------
-   Frontend-only mock data
-   (friends-service not integrated yet)
--------------------------------- */
-
-type Friend = {
-  id: string;
-  username: string;
-  rank?: number;
-};
-
-type FriendRequest = {
-  id: string;
-  username: string;
-};
-
-const MOCK_FRIENDS: Friend[] = [
-  { id: "u1", username: "Alice", rank: 3 },
-  { id: "u2", username: "Bob", rank: 12 },
-  { id: "u3", username: "Charlie", rank: 1 },
-  { id: "u4", username: "Daisy", rank: 8 },
-];
-
-const MOCK_REQUESTS: FriendRequest[] = [
-  { id: "r1", username: "Eve" },
-  { id: "r2", username: "Frank" },
-];
-
-const MOCK_SEARCH_RESULTS: Friend[] = [
-  { id: "s1", username: "Grace" },
-  { id: "s2", username: "Heidi" },
-];
-
-/* -----------------------------
-   Component
--------------------------------- */
+import { getUsersMe, postUsersMe, type UserMeResponse } from "~/api/user";
 
 export default function ProfilePanel() {
-  const { token, logout } = useAuth();
+  const { token, tokenParsed, logout } = useAuth() as {
+    token?: string;
+    tokenParsed?: { preferred_username?: string; sub?: string };
+    logout: (redirectUri?: string) => Promise<void>;
+  };
 
-  /* -----------------------------
-     User profile (real backend)
-  -------------------------------- */
+  const displayName = useMemo(() => {
+    return tokenParsed?.preferred_username ?? tokenParsed?.sub ?? "User";
+  }, [tokenParsed]);
 
-  const [profile, setProfile] = useState<{
-    userId: string;
-    username: string | null;
-    quote: string | null;
-  } | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-
-    setLoading(true);
-
-    getUsersMe(token)
-      .then(setProfile)
-      .catch(err => {
-        console.error(err);
-        setError(err.message ?? "Failed to load profile");
-      })
-      .finally(() => setLoading(false));
-  }, [token]);
-
-  const username = profile?.username ?? "User";
-
-  /* -----------------------------
-     Avatar (frontend-only)
-  -------------------------------- */
-
+  // Avatar (still frontend-only, not part of user-service)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // User-service profile
+  const [profile, setProfile] = useState<UserMeResponse | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -83,65 +27,72 @@ export default function ProfilePanel() {
     setAvatarUrl(URL.createObjectURL(file));
   }
 
-  /* -----------------------------
-     Friends (mocked)
-  -------------------------------- */
+  useEffect(() => {
+    let cancelled = false;
 
-  const [friends, setFriends] = useState<Friend[]>(
-    [...MOCK_FRIENDS].sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
-  );
+    async function load() {
+      if (!token) {
+        setProfile(null);
+        setProfileError("Missing access token (not logged in?)");
+        return;
+      }
 
-  const [requests, setRequests] = useState<FriendRequest[]>(MOCK_REQUESTS);
+      setProfileLoading(true);
+      setProfileError(null);
 
-  function acceptRequest(id: string) {
-    const req = requests.find(r => r.id === id);
-    if (!req) return;
+      try {
+        // Ensure user exists in DB (upsert)
+        await postUsersMe(token);
 
-    setRequests(r => r.filter(rq => rq.id !== id));
-    setFriends(f => [...f, { id, username: req.username }]);
-  }
+        // Fetch profile
+        const me = await getUsersMe(token);
 
-  function rejectRequest(id: string) {
-    setRequests(r => r.filter(rq => rq.id !== id));
-  }
+        if (!cancelled) setProfile(me);
+      } catch (err) {
+        if (!cancelled) setProfileError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    }
 
-  /* -----------------------------
-     Add friend (mocked)
-  -------------------------------- */
-
-  const [search, setSearch] = useState("");
-  const [sentRequestTo, setSentRequestTo] = useState<string | null>(null);
-
-  function sendFriendRequest(username: string) {
-    setSentRequestTo(username);
-  }
-
-  /* -----------------------------
-     Render guards
-  -------------------------------- */
-
-  if (loading) {
-    return <p>Loading profile…</p>;
-  }
-
-  if (error) {
-    return <p style={{ color: "red" }}>{error}</p>;
-  }
-
-  /* -----------------------------
-     Render
-  -------------------------------- */
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   return (
     <div style={{ padding: "1rem", maxHeight: "100vh", overflow: "hidden" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h2>Welcome, {username}</h2>
-        <button onClick={() => logout()}>Logout</button>
+        <h2>Welcome, {displayName}</h2>
+        <button onClick={() => void logout()}>Logout</button>
       </div>
 
-      {/* Avatar */}
+      {/* User-service profile */}
       <div style={{ marginBottom: "1rem" }}>
+        <h3>Profile</h3>
+
+        {profileLoading && <p>Loading profile…</p>}
+
+        {profileError && (
+          <p style={{ color: "red" }}>
+            Profile error: {profileError}
+          </p>
+        )}
+
+        {!profileLoading && !profileError && profile && (
+          <div style={{ border: "1px solid #ccc", padding: "0.5rem" }}>
+            <div><strong>User ID:</strong> {profile.userId}</div>
+            <div><strong>Username:</strong> {profile.username ?? "(none)"}</div>
+            <div><strong>Quote:</strong> {profile.quote ?? "Quote coming soon…"}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Avatar (still local-only) */}
+      <div style={{ marginBottom: "1rem" }}>
+        <h3>Avatar</h3>
         <div
           style={{
             width: 120,
@@ -164,104 +115,6 @@ export default function ProfilePanel() {
           )}
         </div>
         <input type="file" accept="image/*" onChange={onAvatarChange} />
-        <p style={{ fontStyle: "italic" }}>
-          {profile?.quote ?? "Quote coming soon…"}
-        </p>
-      </div>
-
-      {/* Friends list */}
-      <div style={{ marginBottom: "1rem" }}>
-        <h3>Friends</h3>
-        <div
-          style={{
-            maxHeight: 200,
-            overflowY: "auto",
-            border: "1px solid #ccc",
-            padding: "0.5rem",
-          }}
-        >
-          {friends.length === 0 && <p>No friends yet.</p>}
-          {friends.map(f => (
-            <div
-              key={f.id}
-              style={{ display: "flex", justifyContent: "space-between" }}
-            >
-              <span>{f.username}</span>
-              <span>{f.rank ? `Rank ${f.rank}` : "Unranked"}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Friend requests */}
-      <div style={{ marginBottom: "1rem" }}>
-        <h3>Friend Requests</h3>
-        {requests.length === 0 && <p>No incoming requests.</p>}
-        {requests.map(r => (
-          <div
-            key={r.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "0.25rem",
-            }}
-          >
-            <span>{r.username}</span>
-            <div>
-              <button onClick={() => acceptRequest(r.id)}>Accept</button>
-              <button
-                onClick={() => rejectRequest(r.id)}
-                style={{ marginLeft: "0.5rem" }}
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Add friend */}
-      <div>
-        <h3>Add Friend</h3>
-        <input
-          type="text"
-          placeholder="Search players…"
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            setSentRequestTo(null);
-          }}
-        />
-
-        {search && (
-          <div
-            style={{
-              border: "1px solid #ccc",
-              marginTop: "0.5rem",
-              padding: "0.5rem",
-            }}
-          >
-            {MOCK_SEARCH_RESULTS.filter(u =>
-              u.username.toLowerCase().includes(search.toLowerCase())
-            ).map(u => (
-              <div
-                key={u.id}
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
-                <span>{u.username}</span>
-                <button onClick={() => sendFriendRequest(u.username)}>
-                  Add
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {sentRequestTo && (
-          <p style={{ color: "green" }}>
-            Friend request sent to {sentRequestTo}
-          </p>
-        )}
       </div>
     </div>
   );

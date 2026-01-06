@@ -13,7 +13,7 @@ either return JSON or throw an error
 */
 
 const DEFAULT_DEV_API_URL = "http://localhost:3005";
-const DEFAULT_PROD_API_URL = "/api/leaderboard";
+const DEFAULT_PROD_API_URL = "/api";
 
 function resolveApiBaseUrl() {
   const envUrl = import.meta.env.VITE_API_URL;

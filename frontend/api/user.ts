@@ -17,13 +17,13 @@ export type PostUsersMeResponse = {
 };
 
 /* -----------------------------
-   Endpoints
+   Endpoints (match backend routes)
+   Backend routes are:
+   POST /users/me
+   GET  /users/me
+   GET  /users/:userId
 -------------------------------- */
 
-/**
- * POST /users/me
- * Ensure user exists (upsert)
- */
 export function postUsersMe(token: string) {
   return fetchJson<PostUsersMeResponse>("/users/me", {
     method: "POST",
@@ -31,20 +31,10 @@ export function postUsersMe(token: string) {
   });
 }
 
-/**
- * GET /users/me
- * Fetch my profile
- */
 export function getUsersMe(token: string) {
-  return fetchJson<UserMeResponse>("/users/me", {
-    token,
-  });
+  return fetchJson<UserMeResponse>("/users/me", { token });
 }
 
-/**
- * GET /users/:userId
- * Public lookup
- */
 export function getUserById(userId: string) {
   return fetchJson<UserMeResponse>(`/users/${userId}`);
 }
