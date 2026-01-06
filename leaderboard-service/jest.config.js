@@ -5,11 +5,16 @@ module.exports = {
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: ['**/*.test.ts'],
   collectCoverageFrom: [
-    'src/**/*.ts',              // All TypeScript source files
-    '!src/**/*.d.ts',           // Exclude type definitions
-    '!src/generated/**',        // Exclude generated files
-    '!src/**/*.test.ts',        // Exclude test files
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/generated/**',
+    '!src/**/*.test.ts',
+
+    // ---- Exclude infrastructure / entrypoints ----
+    '!src/main.ts',
+    '!src/db.ts',
   ],
+
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {

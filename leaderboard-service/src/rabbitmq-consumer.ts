@@ -118,14 +118,26 @@ export async function processLeaderboardMatchResult(
 ): Promise<void> {
   const { winnerId, loserId, matchId, ranked } = message;
 
+  // ---- REQUIRED VALIDATION (tests depend on exact wording & order) ----
   if (!winnerId || !loserId) {
-    throw new Error("Invalid match result: winnerId and loserId required");
+    throw new Error(
+      "Invalid match result: winnerId and loserId are required"
+    );
+  }
+
+  if (!matchId) {
+    throw new Error(
+      "Invalid match result: matchId is required"
+    );
   }
 
   if (winnerId === loserId) {
-    throw new Error("Invalid match result: winner and loser cannot be same");
+    throw new Error(
+      "Invalid match result: Winner and loser cannot be the same player"
+    );
   }
 
+  // Only ranked matches affect leaderboard
   if (!ranked) return;
 
   const { rows } = await query(
@@ -163,4 +175,5 @@ export async function processLeaderboardMatchResult(
     `[Leaderboard Service] ELO updated: ${winnerId} ${winnerRating}→${newWinnerRating}, ${loserId} ${loserRating}→${newLoserRating}`
   );
 }
+
 
