@@ -1,5 +1,8 @@
+# Ignore all node_modules directories anywhere in the repo
 node_modules/
+
 *.env
+.env
 .env.local
 dist/
 *.cpuprofile
