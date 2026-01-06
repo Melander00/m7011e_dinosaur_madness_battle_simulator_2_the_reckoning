@@ -44,15 +44,17 @@ export async function getTop(limit: number): Promise<RankRow[]> {
  */
 export async function getMe(userId: string): Promise<RankRow | null> {
   const { rows } = await query(
-    `SELECT userid, rankedpoints, rank FROM (
-       SELECT 
-         userid,
-         rankedpoints,
-         RANK() OVER (ORDER BY rankedpoints DESC, userid ASC) as rank
-       FROM ranks
-     ) t
-     WHERE userid = $1
-     LIMIT 1`,
+    `SELECT t.userId, u.username, t.rankedPoints, t.rank
+    FROM (
+        SELECT 
+            r.userId,
+            r.rankedPoints,
+            RANK() OVER (ORDER BY r.rankedPoints DESC, r.userId ASC) AS rank
+        FROM ranks r
+    ) t
+    JOIN users u ON t.userId = u.userId
+    WHERE t.userId = $1
+    LIMIT 1;`,
     [userId]
   );
   
@@ -70,22 +72,27 @@ export async function getNearby(userId: string, range: number = 5): Promise<Rank
   
   const { rows } = await query(
     `WITH ranked_users AS (
-       SELECT 
-         userid,
-         rankedpoints,
-         RANK() OVER (ORDER BY rankedpoints DESC, userid ASC) as rank
-       FROM ranks
-     ),
-     user_rank AS (
-       SELECT rank FROM ranked_users WHERE userid = $1
-     )
-     SELECT 
-       ranked_users.userid,
-       ranked_users.rankedpoints,
-       ranked_users.rank
-     FROM ranked_users, user_rank
-     WHERE ranked_users.rank BETWEEN (user_rank.rank - $2) AND (user_rank.rank + $2)
-     ORDER BY ranked_users.rank ASC`,
+        SELECT 
+            r.userId,
+            r.rankedPoints,
+            RANK() OVER (ORDER BY r.rankedPoints DESC, r.userId ASC) AS rank
+        FROM ranks r
+    ),
+    user_rank AS (
+        SELECT rank 
+        FROM ranked_users 
+        WHERE userId = $1
+    )
+    SELECT 
+        ru.userId,
+        u.username,
+        ru.rankedPoints,
+        ru.rank
+    FROM ranked_users ru
+    JOIN users u ON ru.userId = u.userId
+    CROSS JOIN user_rank ur
+    WHERE ru.rank BETWEEN (ur.rank - $2) AND (ur.rank + $2)
+    ORDER BY ru.rank ASC;`,
     [userId, cappedRange]
   );
   

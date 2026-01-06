@@ -114,7 +114,7 @@ describe('RankRepository', () => {
       // Assert
       expect(result).toEqual(mockRow);
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE userid ='),
+        expect.stringContaining('userId'),
         [userId]
       );
     });

@@ -84,6 +84,7 @@ router.get("/me", requireAuth, async (req, res, next) => {
       userId: result.userid,
       rank: result.rank,
       rankedPoints: result.rankedpoints,
+      username: result.username
     });
   } catch (err) {
     incRequestCount(500, props);
@@ -136,6 +137,7 @@ router.get("/nearby", requireAuth, async (req, res, next) => {
         userId: r.userid,
         rankedPoints: r.rankedpoints,
         isCurrentUser: r.userid === userId,
+        username: r.username
       })),
       count: rows.length,
     });
