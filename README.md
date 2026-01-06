@@ -6,6 +6,10 @@ REQ9: System must include documented and well-designed database schema with prop
 # API documentation (summary)
 REQ16: System must include comprehensive API documentation using OpenAPI, Swagger, or AsyncAPI specifications
 
+OpenApi specifications examples:
+* https://ltu-m7011e-1.se/api/matchmaking/openapi
+* https://ltu-m7011e-1.se/api/game-master/openapi
+
 # Architecture diagram
 REQ17: Project must include comprehensive architecture diagram using C4 model or equivalent architectural documentation, and documentation in GitHub repository
 
