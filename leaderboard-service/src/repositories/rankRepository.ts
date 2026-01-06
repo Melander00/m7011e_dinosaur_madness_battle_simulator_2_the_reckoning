@@ -10,6 +10,7 @@ export type RankRow = {
   userid: string; // UUID as string
   rankedpoints: number;
   rank: number;
+  username?: string;
 };
 
 /**
@@ -22,12 +23,14 @@ export async function getTop(limit: number): Promise<RankRow[]> {
   
   const { rows } = await query(
     `SELECT 
-       userid,
-       rankedpoints,
-       RANK() OVER (ORDER BY rankedpoints DESC, userid ASC) as rank
-     FROM ranks
-     ORDER BY rank ASC
-     LIMIT $1`,
+       r.userId,
+       u.username,
+       r.rankedPoints,
+       RANK() OVER (ORDER BY r.rankedPoints DESC, r.userId ASC) AS rank
+    FROM ranks r
+    JOIN users u ON r.userId = u.userId
+    ORDER BY rank ASC
+    LIMIT $1;`,
     [capped]
   );
   

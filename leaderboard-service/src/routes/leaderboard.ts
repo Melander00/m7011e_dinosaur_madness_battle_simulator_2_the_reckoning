@@ -1,11 +1,11 @@
 import express from "express";
 import { requireAuth } from "../auth/keycloak";
-import * as rankRepo from "../repositories/rankRepository";
 import {
-  createRequestDuration,
-  incRequestCount,
-  PromProps,
+    createRequestDuration,
+    incRequestCount,
+    PromProps,
 } from "../monitoring/prometheus";
+import * as rankRepo from "../repositories/rankRepository";
 
 const router = express.Router();
 
@@ -37,6 +37,7 @@ router.get("/top", async (req, res, next) => {
         rank: r.rank,
         userId: r.userid,
         rankedPoints: r.rankedpoints,
+        username: r.username,
       })),
       count: rows.length,
     });
