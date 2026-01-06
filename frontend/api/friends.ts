@@ -104,7 +104,7 @@ export async function sendFriendRequest(
   toUserId: string
 ) {
   // FIX: add /api prefix
-  return fetchJson("/api/friends/requests", {
+  return fetchJson("/api/friend/requests", {
     method: "POST",
     token,
     headers: { "Content-Type": "application/json" },
