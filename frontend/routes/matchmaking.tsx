@@ -49,7 +49,7 @@ export default function Matchmaking() {
     //   }
     };
 
-    poll();
+    setTimeout(poll, 2000) // race-condition 🥀
     return () => {
       cancelled = true;
     };
