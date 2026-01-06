@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
 import { requireAuth } from "../auth/keycloak";
+import { createRequestDuration, incRequestCount } from '../monitoring/prometheus';
 
 const router = Router();
 
@@ -33,10 +34,12 @@ interface RequestRow {
  * Requires valid JWT token
  */
 router.get('/incoming', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "GET", endpoint: "/requests/incoming" });
   try {
     const userId = req.userId;
     
     if (!userId) {
+      incRequestCount(500, { method: "GET", endpoint: "/requests/incoming" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
@@ -49,9 +52,13 @@ router.get('/incoming', requireAuth, async (req: Request, res: Response, next: N
       [userId, RequestStatus.PENDING]
     );
 
+    incRequestCount(200, { method: "GET", endpoint: "/requests/incoming" });
     return res.json({ userId, requests: rows, count: rows.length });
   } catch (err) {
+    incRequestCount(500, { method: "GET", endpoint: "/requests/incoming" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -61,10 +68,12 @@ router.get('/incoming', requireAuth, async (req: Request, res: Response, next: N
  * Requires valid JWT token
  */
 router.get('/outgoing', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "GET", endpoint: "/requests/outgoing" });
   try {
     const userId = req.userId;
     
     if (!userId) {
+      incRequestCount(500, { method: "GET", endpoint: "/requests/outgoing" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
@@ -77,9 +86,13 @@ router.get('/outgoing', requireAuth, async (req: Request, res: Response, next: N
       [userId]
     );
 
+    incRequestCount(200, { method: "GET", endpoint: "/requests/outgoing" });
     return res.json({ userId, requests: rows, count: rows.length });
   } catch (err) {
+    incRequestCount(500, { method: "GET", endpoint: "/requests/outgoing" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -90,19 +103,23 @@ router.get('/outgoing', requireAuth, async (req: Request, res: Response, next: N
  * Requires valid JWT token
  */
 router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "POST", endpoint: "/requests" });
   try {
     const fromUserId = req.userId;
     const { toUserId } = req.body || {};
 
     if (!fromUserId) {
+      incRequestCount(500, { method: "POST", endpoint: "/requests" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     if (!toUserId) {
+      incRequestCount(400, { method: "POST", endpoint: "/requests" });
       return res.status(400).json({ error: 'toUserId is required' });
     }
 
     if (fromUserId === toUserId) {
+      incRequestCount(400, { method: "POST", endpoint: "/requests" });
       return res.status(400).json({ error: 'Cannot send friend request to yourself' });
     }
 
@@ -113,6 +130,7 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
     );
 
     if (users.length !== 2) {
+      incRequestCount(404, { method: "POST", endpoint: "/requests" });
       return res.status(404).json({ error: 'One or both users do not exist' });
     }
 
@@ -124,6 +142,7 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
     );
 
     if (existing.length > 0) {
+      incRequestCount(400, { method: "POST", endpoint: "/requests" });
       return res.status(400).json({ error: 'Users are already friends' });
     }
 
@@ -135,6 +154,7 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
     );
 
     if (pendingRequests.length > 0) {
+      incRequestCount(400, { method: "POST", endpoint: "/requests" });
       return res.status(400).json({ error: 'Friend request already sent' });
     }
 
@@ -146,15 +166,20 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
       [fromUserId, toUserId, RequestStatus.PENDING]
     );
 
+    incRequestCount(201, { method: "POST", endpoint: "/requests" });
     return res.status(201).json({ 
       message: 'Friend request sent successfully',
       request: rows[0]
     });
   } catch (err: any) {
     if (err.code === '23505') { // Unique constraint violation
+      incRequestCount(400, { method: "POST", endpoint: "/requests" });
       return res.status(400).json({ error: 'Friend request already exists' });
     }
+    incRequestCount(500, { method: "POST", endpoint: "/requests" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -164,15 +189,18 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
  * Requires valid JWT token
  */
 router.put('/:fromUserId/accept', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "PUT", endpoint: "/requests/:fromUserId/accept" });
   try {
     const toUserId = req.userId; // authenticated user is the recipient
     const fromUserId = req.params.fromUserId;
     
     if (!toUserId) {
+      incRequestCount(500, { method: "PUT", endpoint: "/requests/:fromUserId/accept" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     if (!fromUserId) {
+      incRequestCount(400, { method: "PUT", endpoint: "/requests/:fromUserId/accept" });
       return res.status(400).json({ error: 'fromUserId is required' });
     }
 
@@ -184,6 +212,7 @@ router.put('/:fromUserId/accept', requireAuth, async (req: Request, res: Respons
     );
 
     if (requests.length === 0) {
+      incRequestCount(404, { method: "PUT", endpoint: "/requests/:fromUserId/accept" });
       return res.status(404).json({ error: 'Friend request not found or already processed' });
     }
 
@@ -203,12 +232,16 @@ router.put('/:fromUserId/accept', requireAuth, async (req: Request, res: Respons
       [RequestStatus.ACCEPTED, fromUserId, toUserId]
     );
 
+    incRequestCount(200, { method: "PUT", endpoint: "/requests/:fromUserId/accept" });
     return res.json({ 
       message: 'Friend request accepted',
       friendship: { userId1: fromUserId, userId2: toUserId }
     });
   } catch (err) {
+    incRequestCount(500, { method: "PUT", endpoint: "/requests/:fromUserId/accept" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -218,15 +251,18 @@ router.put('/:fromUserId/accept', requireAuth, async (req: Request, res: Respons
  * Requires valid JWT token
  */
 router.put('/:fromUserId/reject', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "PUT", endpoint: "/requests/:fromUserId/reject" });
   try {
     const toUserId = req.userId; // authenticated user is the recipient
     const fromUserId = req.params.fromUserId;
     
     if (!toUserId) {
+      incRequestCount(500, { method: "PUT", endpoint: "/requests/:fromUserId/reject" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     if (!fromUserId) {
+      incRequestCount(400, { method: "PUT", endpoint: "/requests/:fromUserId/reject" });
       return res.status(400).json({ error: 'fromUserId is required' });
     }
 
@@ -238,14 +274,19 @@ router.put('/:fromUserId/reject', requireAuth, async (req: Request, res: Respons
     );
 
     if (result.rowCount === 0) {
+      incRequestCount(404, { method: "PUT", endpoint: "/requests/:fromUserId/reject" });
       return res.status(404).json({ error: 'Friend request not found or already processed' });
     }
 
+    incRequestCount(200, { method: "PUT", endpoint: "/requests/:fromUserId/reject" });
     return res.json({ 
       message: 'Friend request rejected'
     });
   } catch (err) {
+    incRequestCount(500, { method: "PUT", endpoint: "/requests/:fromUserId/reject" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 
@@ -255,15 +296,18 @@ router.put('/:fromUserId/reject', requireAuth, async (req: Request, res: Respons
  * Requires valid JWT token
  */
 router.delete('/:toUserId', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const timer = createRequestDuration({ method: "DELETE", endpoint: "/requests/:toUserId" });
   try {
     const fromUserId = req.userId; // authenticated user is the sender
     const toUserId = req.params.toUserId;
 
     if (!fromUserId) {
+      incRequestCount(500, { method: "DELETE", endpoint: "/requests/:toUserId" });
       return res.status(500).json({ error: 'User ID not found in token' });
     }
 
     if (!toUserId) {
+      incRequestCount(400, { method: "DELETE", endpoint: "/requests/:toUserId" });
       return res.status(400).json({ error: 'toUserId is required' });
     }
 
@@ -274,14 +318,19 @@ router.delete('/:toUserId', requireAuth, async (req: Request, res: Response, nex
     );
 
     if (result.rowCount === 0) {
+      incRequestCount(404, { method: "DELETE", endpoint: "/requests/:toUserId" });
       return res.status(404).json({ error: 'Friend request not found' });
     }
 
+    incRequestCount(200, { method: "DELETE", endpoint: "/requests/:toUserId" });
     return res.json({ 
       message: 'Friend request cancelled'
     });
   } catch (err) {
+    incRequestCount(500, { method: "DELETE", endpoint: "/requests/:toUserId" });
     return next(err);
+  } finally {
+    timer.end();
   }
 });
 

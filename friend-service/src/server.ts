@@ -6,6 +6,7 @@ import { healthCheck } from './db';
 import { initRedis, closeRedis } from './db/redis';
 import { connectRabbitMQ, closeRabbitMQ } from './messaging/rabbitmq';
 import { requireAuth } from './auth/keycloak';
+import { getMetrics } from './monitoring/prometheus';
 
 import friendshipsRouter from './routes/friendships';
 import requestsRouter from './routes/requests';
@@ -31,6 +32,13 @@ app.get('/healthz', async (req: Request, res: Response) => {
   });
 });
 
+// Prometheus metrics endpoint
+app.get('/metrics', async (req: Request, res: Response) => {
+  const { metrics, contentType } = await getMetrics();
+  res.set('Content-Type', contentType);
+  res.send(metrics);
+});
+
 // Token introspection endpoint - returns authenticated user's info from JWT
 app.get('/me', requireAuth, (req, res) => {
   res.status(200).json({
@@ -54,7 +62,7 @@ app.get('/', (req: Request, res: Response) => {
     version: '1.0.0',
     endpoints: {
       friendships: {
-        'GET /friendships': 'Get all friends for authenticated user',
+        'GET /friendships/:userId': 'Get all friends for authenticated user',
         'GET /friendships/count': 'Get friend count',
         'POST /friendships': 'Create friendship (body: {userId})',
         'DELETE /friendships/:userId': 'Delete friendship with user',
