@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getTopPlayers, getMyRank } from "~/api/leaderboard";
 import type { LeaderboardEntry, UserRank } from "~/api/leaderboard";
+import { getMyRank, getTopPlayers } from "~/api/leaderboard";
 import { useAuth } from "~/keycloak/useAuth";
 
 export default function Leaderboard() {
@@ -53,7 +53,7 @@ export default function Leaderboard() {
       <ol>
         {players.map((p) => (
           <li key={p.userId}>
-            #{p.rank} — {p.userId} ({p.rankedPoints} pts)
+            #{p.rank} — {p.username} ({p.rankedPoints} pts)
           </li>
         ))}
       </ol>
