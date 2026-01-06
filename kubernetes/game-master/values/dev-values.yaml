@@ -32,7 +32,7 @@ server:
 rabbit:
   username: "admin"
   password: "admin123"
-  host: rabbitmq-service-api
+  host: rabbitmq-service-api.dev.svc.cluster.local # <- used by game servers in different namespace (tech debt)
   port: "5672"
 
 redis:
