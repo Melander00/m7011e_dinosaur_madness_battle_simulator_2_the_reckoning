@@ -20,7 +20,7 @@ env: development
 # Container image
 image:
   repository: ghcr.io/melander00/m7011e_friend-service
-  tag: "9913e72"
+  tag: "06130cc"
 
 # Ingress configuration
 ingress:
